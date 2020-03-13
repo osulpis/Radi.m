@@ -343,16 +343,11 @@ for i = i:t_length-1
             + phiS./phi.*4.*Rg.*fFe3 - Rfeox]; % Fe2p
     
     %% Top boundary condition: prescribed solid fluxes and diffusive boundary layer control on solutes
-    TA(1) = TA(1) + t_res*(D_TA(1)/tort2(1)*(2*TA(2) - 2*TA(1) + ...
-        TR(1)*(TAw - TA(1)))/(z_res(1)^2) ... % diffusion
-        + u(1)*TR(1)*(TAw - TA(1))/(2*z_res(1)) ... % advection
-        + alpha(1)*(TAw - TA(1)) ... % irrigation
-        + TotR(1, 1)); % reaction
+    TA(1) = RADI_top(TA, D_TA, TAw, TotR(1, :), TR, alpha, u, tort2, ...
+        t_res, z_res);
     
-    DIC(1) = DIC(1) + t_res * ( D_DIC(1) / tort2(1) * (2*DIC(2) - 2*DIC(1) + TR(1) * (DICw - DIC(1))) / (z_res(1).^2) ... %diffusion
-        - u(1) *  -1 * TR(1) * (DICw - DIC(1)) / (2*z_res(1)) ... %advection
-        + alpha(1) * (DICw - DIC(1)) ... %irrigation
-        + TotR(2,1)); %reaction
+    DIC(1) = RADI_top(DIC, D_DIC, DICw, TotR(1, :), TR, alpha, u, ...
+        tort2, t_res, z_res);
     
     Calcite(1) = Calcite(1) + t_res * (D_bio(1) * ( 2 * Calcite(2) - 2 * Calcite(1) +... %diffusion
         2 * z_res(1) * (Fcalcite - phiS(1) * w(1) * Calcite(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ... %diffusion
@@ -368,6 +363,9 @@ for i = i:t_length-1
         - u(1) * -1 * TR(1) * ( O2w - O2(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * ( O2w - O2(1) ) ... %irrigation
         + TotR(5,1)); %reaction
+    
+%     O2test(1) = RADI_top(O2, D_O2, O2w, TotR(5, :), TR, alpha, u, ...
+%         tort2, t_res, z_res); % doesn't give same answer as expression above!
     
     OC_labile(1) = OC_labile(1) + t_res * (D_bio(1) * ( 2 * OC_labile(2) - 2 * OC_labile(1) +... %diffusion
         2 * z_res(1) * (Flabile - phiS(1) * w(1) * OC_labile(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ... %diffusion
@@ -599,8 +597,7 @@ for i = i:t_length-1
        +D_bio(j).*((Clay(j+1)-2.*Clay(j)+Clay(j-1))./z_res(j).^2));   %Clay   
     end
     
-
-    %% Set negative concentrations to zero
+    %% Set any negative concentrations to zero
     TA(TA < 0) = 0;
     DIC(DIC < 0) = 0;
     O2(O2 < 0) = 0;
