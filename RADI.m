@@ -75,8 +75,8 @@ alpha=alpha_0.*exp(-(z/0.05).^2);                                               
 %% depth-dependent porosity and diffusion coefficient loss
 delta_phi = [0 diff(phi)]; % depth-dependent porosity loss
 delta_phiS = [0 diff(phiS)]; % depth-dependent solid fraction gain
-delta_tort2_v2 = [0 diff(tort.^2)]; % depth-dependent tortuosity gain
-delta_D_bio_v2 = [0 diff(D_bio)]; % [m/a]
+delta_tort2 = [0 diff(tort.^2)]; % depth-dependent tortuosity gain
+delta_D_bio = [0 diff(D_bio)]; % [m/a]
 
 % biodiffusion depth-attenuation: see Boudreau (1996); Fiadeiro and Veronis (1977)
 Peh=w.*z_res./(2*D_bio);      %one half the cell Peclet number (Eq. 97 in Boudreau 1996)
