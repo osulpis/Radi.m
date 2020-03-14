@@ -499,8 +499,10 @@ for i=i:t_length-1
         - APPW(z_length) * (-sigma(z_length)*Clay(z_length-1) + sigma(z_length)*Clay(z_length))/z_res(z_length));... %advection    
     
     %% all other depths 
-    for j=2:z_length-1           
-                
+%     for j=2:z_length-1
+
+    j = 2:z_length-1;
+    
    TA(j)=TA(j)+t_res.*(TotR(1,j)...
        -( u(j) - D_TA.* DFF(j)).* (TA(j+1) - TA(j-1))./ (2*z_res(j))...
        +(D_TA./ tort2(j)).* ((TA(j+1) - 2.*TA(j) + TA(j-1))./ (z_res(j).^2))...
@@ -582,7 +584,7 @@ for i=i:t_length-1
     
     Clay(j)=Clay(j)+t_res.*(-APPW(j).* (((1-sigma(j)).*Clay(j+1)+2.*sigma(j).*Clay(j)-(1+sigma(j)).*Clay(j-1))./(2*z_res(j)))...
        +D_bio(j).*((Clay(j+1)-2.*Clay(j)+Clay(j-1))./z_res(j).^2));   %Clay   
-    end
+%     end
     
 
     %% set very small or negative concentration to zero
