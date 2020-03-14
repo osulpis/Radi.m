@@ -226,8 +226,10 @@ for i=i:t_length-1
 
 %     %Aragonite dissolution from Dong et al. (2018) GCA
 %     Rd_aragonite=Aragonite.*2.*(1-OmegaA).^1.4;
+    % This Rd_aragonite not used so commented out 2020-03-13 // MPH
     
     % Aragonite dissolution rate from Dong et al. (2019) EPSL
+    % Converted from loops to logicals 2020-03-13 // MPH
     Rd_aragonite = zeros(size(OmegaA));
     % 0.835 is the OmegaA value at which both laws are equal
     J = OmegaA > 0.835 & OmegaA <= 1;
@@ -247,6 +249,7 @@ for i=i:t_length-1
     
     %Calcite dissolution from Naviaux et al. (2019) Marine Chemistry
     %data for forams with SSA of 4 m2/g
+    % Converted from loops to logicals 2020-03-13 // MPH
     Rd_calcite = zeros(size(OmegaC));
      % 0.8275 is the OmegaC value at which both laws are equal
     J = OmegaC > 0.8275 & OmegaC <= 1;
@@ -261,7 +264,8 @@ for i=i:t_length-1
     end % if
 
     %Calcite precipitation rate from Zuddas and Mucci, GCA (1998)
-    %normalized to the same surface area than for dissolution (4m2/g)       
+    %normalized to the same surface area than for dissolution (4m2/g)
+    % Converted from loops to logicals 2020-03-13 // MPH
     Rp_calcite = zeros(size(OmegaC));
     J = Calcite < 23500 & OmegaC > 1;
     if any(J)
@@ -585,7 +589,7 @@ for i=i:t_length-1
     TA(TA<0)=0;
     DIC(DIC<0)=0;
     O2(O2<0)=0;
-    Ca(Ca<0);
+    Ca(Ca<0)=0; % missing =0 added 2020-03-13 // MPH
     NO3(NO3<0)=0;
     SO4(SO4<0)=0;
     PO4(PO4<0)=0;
