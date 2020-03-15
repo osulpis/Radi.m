@@ -536,11 +536,8 @@ for i=i:t_length-1
         alpha_j.*(TAw - TA_j));
     % ^For some reason, it's actually (very slightly) slower to put
     % (u_j - D_TA*DFF_j) and (D_TA./tort2_j) into variables that are
-    % evaluated before the loop // MPH
-    
-    % Putting the TA calculation into a function is ~10x slower // MPH
-%     TA = RADI_TAj(TA, j, t_res, TotR_TA, u_j, D_TA, DFF_j, z_res_j, ...
-%         tort2_j, z_res2_j, alpha_j, TAw);
+    % evaluated before the loop. Also, putting the TA calculation into a
+    % function is ~10x slower. // MPH
    
     % Dissolved inorganic carbon
     DIC_j = DIC(j);
@@ -747,6 +744,10 @@ for i=i:t_length-1
         idx=idx+1;
     end
 
+    if i==217%any(isnan(OC_labile))
+        disp(i)
+        break
+    end % if
 end
 
 tEnd = toc(tStart);
