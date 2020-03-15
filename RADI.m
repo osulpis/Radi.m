@@ -205,7 +205,7 @@ TR=(2*z_res.* (tort.^2)./ dbl);
 
 %%
 for i=i:t_length-1
-    
+
     %F_O2i=D_O2*phi(1)*(O2(:,1)-O2w)./5e-3;
     %F_DICi=D_DIC*phi(1)*(DIC(:,1)-DICw)./5e-3;
     %F_TAi=D_TA*phi(1)*(TA(:,1)-TAw)./5e-3;
@@ -226,10 +226,10 @@ for i=i:t_length-1
 
 %     %Aragonite dissolution from Dong et al. (2018) GCA
 %     Rd_aragonite=Aragonite.*2.*(1-OmegaA).^1.4;
-    % This Rd_aragonite not used so commented out 2020-03-13 // MPH
+    % This Rd_aragonite not used so now commented out // MPH [2020-03-13]
     
     % Aragonite dissolution rate from Dong et al. (2019) EPSL
-    % Converted from loops to logicals 2020-03-13 // MPH
+    % Converted from loops to logicals // MPH [2020-03-13]
     Rd_aragonite = zeros(size(OmegaA));
     % 0.835 is the OmegaA value at which both laws are equal
     J = OmegaA > 0.835 & OmegaA <= 1;
@@ -249,7 +249,7 @@ for i=i:t_length-1
     
     %Calcite dissolution from Naviaux et al. (2019) Marine Chemistry
     %data for forams with SSA of 4 m2/g
-    % Converted from loops to logicals 2020-03-13 // MPH
+    % Converted from loops to logicals // MPH [2020-03-13]
     Rd_calcite = zeros(size(OmegaC));
      % 0.8275 is the OmegaC value at which both laws are equal
     J = OmegaC > 0.8275 & OmegaC <= 1;
@@ -265,7 +265,7 @@ for i=i:t_length-1
 
     %Calcite precipitation rate from Zuddas and Mucci, GCA (1998)
     %normalized to the same surface area than for dissolution (4m2/g)
-    % Converted from loops to logicals 2020-03-13 // MPH
+    % Converted from loops to logicals // MPH [2020-03-13]
     Rp_calcite = zeros(size(OmegaC));
     J = Calcite < 23500 & OmegaC > 1;
     if any(J)
@@ -329,178 +329,182 @@ for i=i:t_length-1
             + phiS./ phi.* 4.* Rg.* fFe3 - Rfeox];          %Fe2p
     
     %% top boundary condition: prescribed solid fluxes and diffusive boundary layer control on solutes
+%     RADI_top
     TA(1) = TA(1) + t_res * ( D_TA(1) / tort2(1) * (2*TA(2) - 2*TA(1) + TR(1) * (TAw - TA(1))) / (z_res(1).^2) ... %diffusion
         - u(1) *  -1 * TR(1) * (TAw - TA(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * (TAw - TA(1)) ... %irrigation
         + TotR(1,1)); %reaction
-    
+
     DIC(1) = DIC(1) + t_res * ( D_DIC(1) / tort2(1) * (2*DIC(2) - 2*DIC(1) + TR(1) * (DICw - DIC(1))) / (z_res(1).^2) ... %diffusion
         - u(1) *  -1 * TR(1) * (DICw - DIC(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * (DICw - DIC(1)) ... %irrigation
         + TotR(2,1)); %reaction
-    
+
     Calcite(1) = Calcite(1) + t_res * (D_bio(1) * ( 2 * Calcite(2) - 2 * Calcite(1) +... %diffusion
         2 * z_res(1) * (Fcalcite - phiS(1) * w(1) * Calcite(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ... %diffusion
         - w(1) * -1 * (Fcalcite - phiS(1) * w(1) * Calcite(1)) / (D_bio(1) * phiS(1))... %advection
         + TotR(3,1)); %reaction
-    
+
     Aragonite(1) = Aragonite(1) + t_res * (D_bio(1) * ( 2 * Aragonite(2) - 2 * Aragonite(1) +... %diffusion
         2 * z_res(1) * (Faragonite - phiS(1) * w(1) * Aragonite(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ... %diffusion
         - w(1) * -1 * (Faragonite - phiS(1) * w(1) * Aragonite(1)) / (D_bio(1) * phiS(1))... %advection
         + TotR(4,1)); %reaction
-    
+
     O2(1) = O2(1) + t_res * ( D_O2 / tort2(1) * (2*O2(2) - 2*O2(1) + TR(1) * (O2w - O2(1))) / (z_res(1)^2) ... %diffusion
         - u(1) * -1 * TR(1) * ( O2w - O2(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * ( O2w - O2(1) ) ... %irrigation
         + TotR(5,1)); %reaction
-    
+
     OC_labile(1) = OC_labile(1) + t_res * (D_bio(1) * ( 2 * OC_labile(2) - 2 * OC_labile(1) +... %diffusion
         2 * z_res(1) * (Flabile - phiS(1) * w(1) * OC_labile(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ... %diffusion
         -w(1) * -1 * (Flabile - phiS(1) * w(1) * OC_labile(1)) / (D_bio(1) * phiS(1))... %advection
         + TotR(6,1)); %reaction
-    
+
     OC_refractory(1) = OC_refractory(1) + t_res * (D_bio(1) * ( 2 * OC_refractory(2) - 2 * OC_refractory(1) +... %diffusion
         2 * z_res(1) * (2*Frefractory - phiS(1) * w(1) * OC_refractory(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
         -w(1) * -1 * (2*Frefractory - phiS(1) * w(1) * OC_refractory(1)) / (D_bio(1) * phiS(1))... %advection
         +TotR(7,1)); %reaction
-    
+
     Ca(1) = Ca(1) + t_res * ( D_Ca(1) / tort2(1) * (2*Ca(2) - 2*Ca(1) + TR(1) * (Caw - Ca(1))) / (z_res(1).^2) ... %diffusion
         - u(1) *  -1 * TR(1) * (Caw - Ca(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * (Caw - Ca(1)) ... %irrigation
         + TotR(8,1)); %reaction
-    
+
     MnO2(1) = MnO2(1) + t_res * (D_bio(1) * ( 2 * MnO2(2) - 2 * MnO2(1) +... %diffusion
         2 * z_res(1) * (Fmno2 - phiS(1) * w(1) * MnO2(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ... %diffusion
         - w(1) * -1 * (Fmno2 - phiS(1) * w(1) * MnO2(1)) / (D_bio(1) * phiS(1))... %advection
         + TotR(9,1)); %reaction                                                                                  
-    
+
     FeOH3(1) = FeOH3(1) + t_res * (D_bio(1) * ( 2 * FeOH3(2) - 2 * FeOH3(1) +... %diffusion
         2 * z_res(1) * (Ffeoh3 - phiS(1) * w(1) * FeOH3(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ... %diffusion
         - w(1) * -1 * (Ffeoh3 - phiS(1) * w(1) * FeOH3(1)) / (D_bio(1) * phiS(1))... %advection
         + TotR(10,1)); %reaction
-    
+
     NO3(1) = NO3(1) + t_res * ( D_NO3(1) / tort2(1) * (2*NO3(2) - 2*NO3(1) + TR(1) * (NO3w - NO3(1))) / (z_res(1).^2) ... %diffusion
         - u(1) *  -1 * TR(1) * (NO3w - NO3(1)) / (2*z_res(1)) ...  %advection
         + alpha(1) * (NO3w - NO3(1))... %irrigation
         + TotR(11,1));  %reaction
-    
+
     SO4(1) = SO4(1) + t_res * ( D_SO4(1) / tort2(1) * (2*SO4(2) - 2*SO4(1) + TR(1) * (SO4w - SO4(1))) / (z_res(1).^2) ...  %diffusion
         - u(1) *  -1 * TR(1) * (SO4w - SO4(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * (SO4w - SO4(1))... %irrigation
         + TotR(12,1)); %reaction
-    
+
     PO4(1) = PO4(1) + t_res * ( (phi(1) * D_PO4 / tort2(1) + phiS(1) * D_bio(1) * KPA) * ( 2 * PO4(2) - 2 * PO4(1)... %diffusion
         + TR(1) * (PO4w - PO4(1) )) / (z_res(1).^2) ... %diffusion
         - (phi(1) * u(1) + phiS(1) * w(1) * KPA - phi(1) * D_PO4 * DFF(1) - KPA * DBF(1)) * -1 * TR(1)... %advection
         * (PO4w - PO4(1)) / (2*z_res(1)) ... %advection
         + phi(1) * alpha(1) * (PO4w - PO4(1)) ... %irrigation
         +TotR(13,1))./ (phi(z_length)+phiS(z_length)*KPA); %reaction
-    
+
     NH4(1) = NH4(1) + t_res * ( (phi(1) * D_NH4 / tort2(1) + phiS(1) * D_bio(1) * KNA) * ( 2 * NH4(2) - 2 * NH4(1)... %diffusion
         + TR(1) * (NH4w - NH4(1) )) / (z_res(1).^2) ...  %diffusion
         - (phi(1) * u(1) + phiS(1) * w(1) * KNA - phi(1) * D_NH4 * DFF(1) - KNA * DBF(1)) * -1 * TR(1)... %advection
         * (NH4w - NH4(1)) / (2*z_res(1)) ... %advection
         + phi(1) * alpha(1) * (NH4w - NH4(1)) ...  %irrigation
         + TotR(14,1)) / (phi(z_length)+phiS(z_length)*KNA); %reaction
-    
+
     H2S(1) = H2S(1) + t_res * ( D_H2S(1) / tort2(1) * (2*H2S(2) - 2*H2S(1) + TR(1) * (H2Sw - H2S(1))) / (z_res(1).^2) ...  %diffusion
         - u(1) *  -1 * TR(1) * (H2Sw - H2S(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * (H2Sw - H2S(1)) ... %irrigation
         + ( phiS(1) / phi(1) ) * (OC_labile(1) * klabile(1) + OC_refractory(1) * krefractory(1) ) * fSO4(1) / 2 ...  %reaction
         +TotR(15,1)); %reaction
-    
+
     Mn2p(1) = Mn2p(1) + t_res * ( D_Mn2p(1) / tort2(1) * (2*Mn2p(2) - 2*Mn2p(1) + TR(1) * (Mn2pw - Mn2p(1))) / (z_res(1).^2) ...  %diffusion
         - u(1) *  -1 * TR(1) * (Mn2pw - Mn2p(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * (Mn2pw - Mn2p(1)) ...   %irrigation
         + ( phiS(1) / phi(1) ) * 2 * (OC_labile(1) * klabile(1) + OC_refractory(1) * krefractory(1) ) * fMnO2(1)... %reaction
         +TotR(16,1)); %reaction
-    
+
     Fe2p(1) = Fe2p(1) + t_res * ( D_Fe2p(1) / tort2(1) * (2*Fe2p(2) - 2*Fe2p(1) + TR(1) * (Fe2pw - Fe2p(1))) / (z_res(1).^2) ... %diffusion
         - u(1) *  -1 * TR(1) * (Fe2pw - Fe2p(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * (Fe2pw - Fe2p(1)) ... %irrigation
         + TotR(17,1)); %reaction
-    
+
     Clay(1) = Clay(1) + t_res * (D_bio(1) * ( 2 * Clay(2) - 2 * Clay(1) +... %diffusion
         2 * z_res(1) * (Fclay - phiS(1) * w(1) * Clay(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ... %diffusion
         - w(1) * -1 * (Fclay - phiS(1) * w(1) * Clay(1)) / (D_bio(1) * phiS(1))); %advection
-            
-        %% bottom boundary condition: gradients disappear
+      
+    %% bottom boundary condition: gradients disappear
+%     RADI_bot
     TA(z_length) = TA(z_length) + t_res * (D_TA / tort2(z_length) * 2 * ((TA(z_length-1) - TA(z_length)) / z_res(z_length).^2) ...   %diffusion
         +alpha(z_length) * (TAw - TA(z_length)) ... %irrigation
         +TotR(1,z_length));
-    
+
     DIC(z_length) = DIC(z_length) + t_res * (D_DIC / tort2(z_length) * 2 * ((DIC(z_length-1) - DIC(z_length)) / z_res(z_length).^2) ...   %diffusion
         +alpha(z_length) * (DICw - DIC(z_length)) ...  %irrigation
         +TotR(2,z_length));
-    
+
     Calcite(z_length) = Calcite(z_length) + t_res * (D_bio(z_length) * 2 * ( (Calcite(z_length-1) - Calcite(z_length))  / z_res(z_length).^2)...%diffusion
         - APPW(z_length) * (-sigma(z_length)*Calcite(z_length-1) + sigma(z_length)*Calcite(z_length))/z_res(z_length)...  %advection
         +TotR(3,z_length));
-    
+
     Aragonite(z_length) = Aragonite(z_length) + t_res * (D_bio(z_length) * 2 * ( (Aragonite(z_length-1) - Aragonite(z_length))  / z_res(z_length).^2)...%diffusion
         - APPW(z_length) * (-sigma(z_length)*Aragonite(z_length-1) + sigma(z_length)*Aragonite(z_length))/z_res(z_length)... %advection
         +TotR(4,z_length));
-    
+
     O2(z_length) = O2(z_length) + t_res * (D_O2 / tort2(z_length) * 2 * ((O2(z_length-1) - O2(z_length)) / z_res(z_length).^2) ...  %diffusion
         + alpha(z_length) * (O2w - O2(z_length)) ... %irrigation
         +TotR(5,z_length));
-    
+
     OC_labile(z_length) = OC_labile(z_length) + t_res * (D_bio(z_length) * 2 * ( (OC_labile(z_length-1) - OC_labile(z_length)) / z_res(z_length).^2)... %diffusion
         - APPW(z_length) * (-sigma(z_length)*OC_labile(z_length-1) + sigma(z_length)*OC_labile(z_length))/z_res(z_length)... %advection
         +TotR(6,z_length));
-    
+
     OC_refractory(z_length) = OC_refractory(z_length) + t_res * (D_bio(z_length) * 2 * ( (OC_refractory(z_length-1) - OC_refractory(z_length)) / z_res(z_length).^2)... %diffusion
         - APPW(z_length) * (-sigma(z_length)*OC_refractory(z_length-1) + sigma(z_length)*OC_refractory(z_length))/z_res(z_length)... %advection
         +TotR(7,z_length));
-    
+
     Ca(z_length) = Ca(z_length) + t_res * (D_Ca / tort2(z_length) * 2 * ((Ca(z_length-1) - Ca(z_length)) / z_res(z_length).^2) ... %diffusion
         +alpha(z_length) * (Caw - Ca(z_length)) ... %irrigation
         +TotR(8,z_length));
-    
+
     MnO2(z_length) = MnO2(z_length) + t_res * (D_bio(z_length) * 2 * ( (MnO2(z_length-1) - MnO2(z_length))  / z_res(z_length).^2)... %diffusion
         - APPW(z_length) * (-sigma(z_length) * MnO2(z_length-1) + sigma(z_length)*MnO2(z_length))/z_res(z_length)...  %advection
         +TotR(9,z_length));
-    
+
     FeOH3(z_length) = FeOH3(z_length) + t_res * (D_bio(z_length) * 2 * ( (FeOH3(z_length-1) - FeOH3(z_length))  / z_res(z_length).^2)...%diffusion
         - APPW(z_length) * (-sigma(z_length)*FeOH3(z_length-1) + sigma(z_length)*FeOH3(z_length))/z_res(z_length)...%advection
         +TotR(10,z_length));
-    
+
     NO3(z_length) = NO3(z_length) + t_res * (D_NO3 / tort2(z_length) * 2 * ((NO3(z_length-1) - NO3(z_length)) / z_res(z_length).^2) ...  %diffusion
         + alpha(z_length) * (NO3w - NO3(z_length)) ...  %irrigation
         +TotR(11,z_length));
-    
+
     SO4(z_length) = SO4(z_length) + t_res * (D_SO4 / tort2(z_length) * 2 * ((SO4(z_length-1) - SO4(z_length)) / z_res(z_length).^2) ...  %diffusion
         + alpha(z_length) * (SO4w - SO4(z_length)) ... %irrigation
         +TotR(12,z_length));
-    
+
     PO4(z_length) = PO4(z_length) + t_res * ( (phi(z_length) * D_PO4 / tort2(z_length) + phiS(z_length) * D_bio(z_length) * KPA) ... %diffusion
         * 2 * ((PO4(z_length-1) - PO4(z_length)) / z_res(z_length).^2) ...  %diffusion
         + phi(z_length) * alpha(z_length) * (PO4w - PO4(z_length)) ... %irrigation
         +TotR(13,z_length)) / (phi(z_length)+phiS(z_length)*KPA); %reaction
-    
+
     NH4(z_length) = NH4(z_length) + t_res * ( (phi(z_length) * D_NH4 / tort2(z_length) + phiS(z_length) * D_bio(z_length) * KNA) ... %diffusion
         * 2 * ((NH4(z_length-1) - NH4(z_length)) / z_res(z_length).^2) ...     %diffusion
         + phi(z_length) * alpha(z_length) * (NH4w - NH4(z_length)) ...  %irrigation
         +TotR(14,z_length)) / (phi(z_length)+phiS(z_length)*KNA);  %reaction
-    
+
     H2S(z_length) = H2S(z_length) + t_res * (D_H2S / tort2(z_length) * 2 * ((H2S(z_length-1) - H2S(z_length)) / z_res(z_length).^2) ...  %diffusion
         + alpha(z_length) * (H2Sw - H2S(z_length)) ... %irrigation
         +TotR(15,z_length));
-    
+
     Mn2p(z_length) = Mn2p(z_length) + t_res * (D_Mn2p / tort2(z_length) * 2 * ((Mn2p(z_length-1) - Mn2p(z_length)) / z_res(z_length).^2) ...  %diffusion
         + alpha(z_length) * (Mn2pw - Mn2p(z_length)) ... %irrigation
         +TotR(16,z_length));
-    
+
     Fe2p(z_length) = Fe2p(z_length) + t_res * (D_Fe2p / tort2(z_length) * 2 * ((Fe2p(z_length-1) - Fe2p(z_length)) / z_res(z_length).^2) ...  %diffusion
         + alpha(z_length) * (Fe2pw - Fe2p(z_length)) ...   %irrigation
         +TotR(17,z_length));
-    
+
     Clay(z_length) = Clay(z_length) + t_res * (D_bio(z_length) * 2 * ((Clay(z_length-1) - Clay(z_length))  / z_res(z_length).^2) ...%diffusion
-        - APPW(z_length) * (-sigma(z_length)*Clay(z_length-1) + sigma(z_length)*Clay(z_length))/z_res(z_length));... %advection    
+    - APPW(z_length) * (-sigma(z_length)*Clay(z_length-1) + sigma(z_length)*Clay(z_length))/z_res(z_length));... %advection    
     
     %% all other depths 
 %     for j=2:z_length-1
-
+    % z_length = 100 seems to be the sweet spot where loop and logical
+    % approaches take about the same time as each other. For greater
+    % z_length, logical is faster. // MPH [2020-03-15]
     j = 2:z_length-1;
     
    TA(j)=TA(j)+t_res.*(TotR(1,j)...
@@ -591,7 +595,7 @@ for i=i:t_length-1
     TA(TA<0)=0;
     DIC(DIC<0)=0;
     O2(O2<0)=0;
-    Ca(Ca<0)=0; % missing =0 added 2020-03-13 // MPH
+    Ca(Ca<0)=0; % missing =0 added // MPH [2020-03-13]
     NO3(NO3<0)=0;
     SO4(SO4<0)=0;
     PO4(PO4<0)=0;
@@ -632,7 +636,7 @@ for i=i:t_length-1
         Clayf(idx,:)=Clay;
         idx=idx+1;
     end
-            
+
 end
 
 tEnd = toc(tStart);
