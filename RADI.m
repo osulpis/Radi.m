@@ -520,12 +520,11 @@ for i=i:t_length-1
     Clay(z_length) = Clay(z_length) + t_res * (D_bio(z_length) * 2 * ((Clay(z_length-1) - Clay(z_length))  / z_res(z_length).^2) ...%diffusion
     - APPW(z_length) * (-sigma(z_length)*Clay(z_length-1) + sigma(z_length)*Clay(z_length))/z_res(z_length));... %advection    
     
-    %% all other depths 
-%     for j=2:z_length-1
+    %% all other depths
     % z_length=100 seems to be the sweet spot where loop and logical
     % approaches take about the same time as each other. For greater
     % z_length, logical is faster. Indices are defined once, before the
-    % loop begins. // MPH [2020-03-15]
+    % loop begins. // MPH [v20]
     
     % Total alkalinity
     TA_j = TA(j);
