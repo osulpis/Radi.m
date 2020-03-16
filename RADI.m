@@ -681,7 +681,6 @@ for i=i:t_length-1
         (u_j - D_PO4*DFF_j).*(PO4_jp1 - PO4_jm1)./(2*z_res_j) + ...
         (D_PO4./tort2_j).*((PO4_jp1 - 2*PO4_j + PO4_jm1)./z_res2_j) + ...
         alpha_j.*(PO4w - PO4_j))./(phi_j + phiS_j*KPA);
-    % ^ Switched final division to elementwise not matrix // MPH [v20]
 
     % Ammonium
     NH4_j = NH4(j);
@@ -691,7 +690,6 @@ for i=i:t_length-1
         (u_j - D_NH4*DFF_j).*(NH4_jp1 - NH4_jm1)./(2*z_res_j) + ...
         (D_NH4./tort2_j).*((NH4_jp1 - 2*NH4_j + NH4_jm1)./z_res2_j) + ...
         alpha_j.*(NH4w - NH4_j))./(phi_j + phiS_j*KNA);
-    % ^ Switched final division to elementwise not matrix // MPH [v20]
 
     % Hydrogen sulfide
     H2S_j = H2S(j);

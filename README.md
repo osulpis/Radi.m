@@ -1,4 +1,4 @@
-# RADIv20
+# RADI v20
 
 1-D Reaction-Advection-Diffusion-Irrigation (RADI) Diagenetic Sediment Module.
 
