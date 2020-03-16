@@ -72,5 +72,4 @@ Ffes=0;                            %FeS does not flux across the interface (Boud
 
 %% diffusive boundary layer
 dbl=1e-3;            %[m] thickness at location taken from Sulpis et al 2018 PNAS
-
-save('IC_Hales1994_H9.mat')
+save('data/IC_Hales1994_H9.mat')
