@@ -1,8 +1,8 @@
-# Porewaters
+# RADI v20
 
 1-D Reaction-Advection-Diffusion-Irrigation (RADI) Diagenetic Sediment Module.
 
-Source code by O. Sulpis and M. Wilhelmus.
+Source code by O. Sulpis and M. Wilhelmus. Optimised for MATLAB by [M.P. Humphreys](https://mvdh.xyz).
 
 Requirements for RADI: `calc_pco2()` (in this repo) and [CO2SYS](https://github.com/jamesorr/CO2SYS-MATLAB/blob/master/src/CO2SYS.m).
 
