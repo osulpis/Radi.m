@@ -1,6 +1,6 @@
 %% 1-D Reaction-Advection-Diffusion-Irrigation (RADI) Diagenetic Sediment Module
 %% Source code by O. Sulpis and M. Wilhelmus
-%% Optimised for MATLAB by M.P. Humphreys [March 2020]
+%% Optimised for MATLAB by M.P. Humphreys [v20, March 2020]
 %% Uses: CO2SYS and calc_pco2
 
 disp("RADIv20 is running the following experiment:")
@@ -38,15 +38,12 @@ bt(1,1:z_length) = CO2SYSr(1,79);             %[umol/kg] total boron
 omegaC = CO2SYSr(1,30);                         %calcite saturation state
 omegaA = CO2SYSr(1,31);                          %aragonite saturation state
 co3 = CO2SYSr(1,22) .* 10^-6;                   %[mol/kg] CO3 
-hco3 = CO2SYSr(1,21) .* 10^-6;                 %[mol/kg] HCO3
 ph = CO2SYSr(1,37) ;                                   %pH on the total scale
 CALK = Caw ./ rho_sw;                                 %[mol/kg] Ca concentration 
-fg(1,1:z_length)=TAw./rho_sw-hco3-2*co3; %sum of all alkalinity species that are not carbon
 kspc = (co3 .* CALK) ./ omegaC;                %[mol2/kg2] calcite in situ solubility
 kspa = (co3 .* CALK) ./ omegaA;                %[mol2/kg2] aragonite in situ solubility
-ff(1,1:z_length) = 1;                                        %random parameter needed for calc_pco2
 H(1,1:z_length) = 10^-ph;                             %[mol/kg] H concentration first guess
-clear co3 hco3 ph omegaC omegaA CALK CO2SYSr   
+clear co3 ph omegaC omegaA CALK CO2SYSr   
 sit = 120 * 10^-6;                                              %[mol/kg] convert silica concentration
 bt = bt .* 10^-6;                                                %[mol/kg] convert boron concentration
 
@@ -245,9 +242,37 @@ for i=i:t_length-1
     TA_molPerKg = TA ./ rho_sw;         %convert TA to [mol/kg]
     PO4_molPerKg = PO4 ./ rho_sw;   %convert PO4 to [mol/kg]
     
-    [H] = calc_pCO2(DIC_molPerKg,PO4_molPerKg,sit,bt,TA_molPerKg,ff,k1,k2,k1p,k2p,k3p,kb,kw,ksi,fg,H);    %[mol/kg] H concentration
+    %======================================================================
+    % Extract from calc_pCO2.m - runs ~3x faster here than in a separate
+    % function // MPH [v20]
+    %
+    % Original comments:
+    %
+    %calc_pCO2()
+    %Example FORTRAN subroutine: solve carbonate system for pC02
+    %M. Follows, T. Ito, S. Dutkiewicz
+    %D. Carroll, 2019
+    hg = H;
+    bohg = bt.*kb./(hg + kb);
+    siooh3g = sit.*ksi./(ksi + hg);
+    denom = hg.*hg.*hg + k1p.*hg.*hg + k1p.*k2p.*hg + k1p.*k2p.*k3p;
+    h3po4g = PO4_molPerKg.*hg.*hg.*hg./denom;
+    hpo4g = PO4_molPerKg.*k1p.*k2p.*hg./denom;
+    po4g = PO4_molPerKg.*k1p.*k2p.*k3p./denom;
+
+    %estimate carbonate alkalinity
+    fg = (-bohg - (kw./hg)) + hg - hpo4g - 2*po4g + h3po4g - siooh3g;
+    cag = TA_molPerKg + fg;
+
+    %improved estimate of hydrogen ion conc
+    gamm = DIC_molPerKg./cag;
+    dummy = (1-gamm).*(1-gamm).*k1.*k1 - 4*k1.*k2.*(1 - 2*gamm);
+    H = 0.5*((gamm-1).*k1 + sqrt(dummy)); %[mol/kg] H concentration
+    % end calc_pCO2.m extract // MPH [v20]
+    %======================================================================
     
-    co3_molPerKg = (DIC_molPerKg .* k1 .* k2)./ (H.^2 + (k1 .* H) + (k1 .* k2)); %[mol/kg] CO3 concentration
+    co3_molPerKg = (DIC_molPerKg .* k1 .* k2)./ (H.^2 + (k1 .* H) + ...
+        (k1 .* k2)); %[mol/kg] CO3 concentration
     co3 = co3_molPerKg .* rho_sw; %[mol m^-3] CO3 concentraiton
     
     %% CaCO3 reactions
@@ -264,11 +289,13 @@ for i=i:t_length-1
     % 0.835 is the OmegaA value at which both laws are equal
     J = OmegaA > 0.835 & OmegaA <= 1;
     if any(J)
+        % The unavoidably slow part of this calculation is ^0.13 // MPH
         Rd_aragonite(J) = (Aragonite(J)*100.09*4.* ...
             (0.0019*(1 - OmegaA(J)).^0.13))/25;
     end % if
     J = OmegaA <= 0.835;
     if any(J)
+        % The unavoidably slow part of this calculation is ^1.46 // MPH
         Rd_aragonite(J) = (Aragonite(J)*100.09*4.* ...
             (0.021*(1 - OmegaA(J)).^1.46))/25;
     end % if
@@ -284,13 +311,15 @@ for i=i:t_length-1
      % 0.8275 is the OmegaC value at which both laws are equal
     J = OmegaC > 0.8275 & OmegaC <= 1;
     if any(J)
-        Rd_calcite(J) = (Calcite(J)*100.09*4.* ...
-            (0.00158*(1 - OmegaC(J)).^0.11))/25;
+        % The unavoidably slow part of this calculation is ^0.11 // MPH
+        Rd_calcite(J) = Calcite(J).*(100.09*4*0.00158* ...
+            (1 - OmegaC(J)).^0.11)/25;
     end % if
     J = OmegaC <= 0.8275;
     if any(J)
-        Rd_calcite(J) = (Calcite(J)*100.09*4.* ...
-            (5*(1 - OmegaC(J)).^4.7))/25;
+        % The unavoidably slow part of this calculation is ^4.7 // MPH
+        Rd_calcite(J) = Calcite(J).*(100.09*4*5* ...
+            (1 - OmegaC(J)).^4.7)/25;
     end % if
 
     %Calcite precipitation rate from Zuddas and Mucci, GCA (1998)
@@ -299,6 +328,7 @@ for i=i:t_length-1
     Rp_calcite(:) = 0;
     J = Calcite < 23500 & OmegaC > 1;
     if any(J)
+        % The unavoidably slow part of this calculation is ^1.76 // MPH
 %         Rp_calcite(J) = (Calcite(J)*100.09*4*1.63.* ...
 %             (OmegaC(J) - 1).^1.76)/100;
         Rp_calcite(J) = 1.63*(OmegaC(J) - 1).^1.76;
@@ -744,7 +774,7 @@ for i=i:t_length-1
         idx=idx+1;
     end
 
-    if i==217%any(isnan(OC_labile))
+    if any(isnan(H))
         disp(i)
         break
     end % if
