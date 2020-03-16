@@ -772,10 +772,6 @@ for i=i:t_length-1
         idx=idx+1;
     end
 
-    if any(isnan(H))
-        disp(i)
-        break
-    end % if
 end
 
 tEnd = toc(tStart);
