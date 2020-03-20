@@ -11,8 +11,8 @@ z_res=ones(1,z_length).*z_res;     %[m] depth resolution
 
 %% definition of the temporal domain
 % t_end=20000;                             %[a] total timespan of the problem
-t_end = 2;
-t_res=1/64000;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
+t_end = 1000;
+t_res=1/128000;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
 % t_res = 1/8760;
 t_length=t_end/t_res;                 %[no unit] number of time layers
 
@@ -24,19 +24,8 @@ rho_sw = gsw_rho(S,T,1); %[kg/m^3] in situ seawater density computed from GSW to
 P=rho_sw.*9.81.*SF_depth/1e5; %[bar] in situ pressure computed from GSW toolbox
 
 %% bottom-water values of dissolved species
-TAw=(2426)*1e-6*rho_sw;                                    %[mol/m3] total alkalinity
-DICw=(2324.3)*1e-6*rho_sw;                               %[mol/m3] dissolved inorganic carbon
-Caw=0.02133./40.087.*(S./1.80655)*rho_sw;    %[mol/m3] Ca, computed from salinity using Riley CG(1967)
 O2w=(159.7)*1e-6*rho_sw;                                   %[mol/m3] dissolved oxygen
-NO3w=(36.93)*1e-6*rho_sw;                                %[mol/m3] nitrate from GLODAP at sation location, bottom waters
-SO4w=((0.029264*S)/35)*rho_sw;                       %[mol/m3] sulfate, computed from S using ratios in table 2.3 of Millero(2013)
 PO4w=(2.39)*1e-6*rho_sw;                                   %[mol/m3] nitrate from GLODAP at sation location, bottom waters
-NH4w=1e-6;                                                             %[mol/m3] ammonium, typical deep sea oxic (J6BC) concentration from Archer et al (2002)
-H2Sw=0;                                                                   %[mol/m3] hydrogen sulfide
-Mn2pw=0;                                                                 %[mol/m3] manganese (II) ion, typical deep sea oxic (J6BC) concentration from Archer et al (2002)
-Fe2pw=2e-6;                                                            %[mol/m3] iron (II) ion, typical deep sea oxic (J6BC) concentration from Archer et al (2002)
-CH4w=0;                                                                   %[mol/m3] methane
-Siw=(120)*1e-6*rho_sw;                                         %[mol/m3] dissolved inorganic silica
 
 %% depth-dependent porosity
 phi = (0.85-0.74)*exp(-33.*z)+0.74;         %porosity profile (porewater bulk fraction) fitted from station7 mooring3 of cruise NBP98-2 by Sayles et al DSR 2001
@@ -51,14 +40,9 @@ RP=1;                          % Redfield ratio for P in the deep sea
 M_OM=30.03+(RN/RC)*17.03+(RP/RC)*97.994; %[g of OM per mol of OC] Organic Matter molar mass
 
 %% solid fluxes and solid initial conditions
-Foc=0.22;                       %[mol/m2/a] flux of total organic carbon to the bottom 
-Fcalcite=0.22;                %[mol/m2/a] flux of calcite to the bottom 
-Faragonite=0;                 %assume no aragonite
-Flabile=0.65*Foc;          %[mol/m2/a] following Archer (2002) see Arndt et al. (2013) Table 6
-Frefractory=0.175*Foc;   %[mol/m2/a] following Archer (2002) see Arndt et al. (2013) Table 6
-Fclay=2/258.17;             %[mol/m2/a] flux of clay to the bottom
+Foc=1;                       %[mol/m2/a] flux of total organic carbon to the bottom 
 
-Ftot=Foc.*M_OM+Fcalcite.*100.09+Fclay.*258.7;      %[g/m2/a] total sediment flux 
+Ftot=Foc.*M_OM;      %[g/m2/a] total sediment flux 
 v0=(Ftot)/(2.65e6*phiS(1));                                             %[m/a] bulk burial velocity at sediment-water interface
 vinf=v0*phiS(1)/phiS(1,z_length);                                    %[m/a]bulk burial velocity at the infinite depth
 for j=1:z_length
@@ -66,10 +50,6 @@ for j=1:z_length
     w(1,j)=vinf*phiS(1,z_length)/phiS(1,j);                         %[m/a] solid burial velocity
 end
 
-Fmno2=5*w(1);              %[mol/m2/a] for a typical deep sea surface sediment concentration of 500ppm, see Archet et al (2002) J6BC, dry sed density of 2.65
-Ffeoh3=5*w(1);              %[mol/m2/a] we assume that FeOH3 and MnO2 have the same surface concentration following Fig. 1 in Boudreau (1996)
-Ffes=0;                            %FeS does not flux across the interface (Boudreau, 1996)
-
 %% diffusive boundary layer
 dbl=1e-3;            %[m] thickness at location taken from Sulpis et al 2018 PNAS
-save('data/IC_Hales1994_H9.mat')
+save('data/IC_W2_OMonly.mat')
