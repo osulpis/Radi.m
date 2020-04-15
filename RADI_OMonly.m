@@ -139,12 +139,6 @@ for i=i:t_length-1
     % single matrix but keeping as separate vectors // MPH
     TotR_O2 = -phiS./phi.*Rg;
     TotR_OC=-OC.*krefractory;
-    if i == 1
-        disp(' ')
-        disp('alpha_0:')
-        disp(alpha_0)
-        disp(' ')
-    end % if
     
     %% top boundary condition: prescribed solid fluxes and diffusive boundary layer control on solutes
     % Calculate here, but don't set in arrays yet, otherwise calculations
@@ -155,9 +149,22 @@ for i=i:t_length-1
         + TotR_O2(1)); %reaction
 
     OC_1 = OC(1) + t_res * (D_bio(1) * ( 2 * OC(2) - 2 * OC(1) +... %diffusion
-        2 * z_res(1) * (2*Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
+        2 * z_res(1) * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
         -w(1) * -1 * (2*Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))... %advection
         +TotR_OC(1)); %reaction
+    
+    if i == 1
+        disp(' ')
+        disp('original diffusive OC term at top:')
+        disp(t_res*(D_bio(1) * ( 2 * OC(2) - 2 * OC(1) +... %diffusion
+            2 * z_res(1) * (2*Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ...
+            ) / (z_res(1).^2)))
+        disp('corrected diffusive OC term at top:')
+        disp(t_res*(D_bio(1) * ( 2 * OC(2) - 2 * OC(1) +... %diffusion
+            2 * z_res(1) * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ...
+            ) / (z_res(1).^2)))
+        disp(' ')
+    end % if
       
     %% bottom boundary condition: gradients disappear
     % Calculate here, but don't set in arrays yet, otherwise calculations
