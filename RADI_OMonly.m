@@ -49,7 +49,6 @@ delta_phi(1) = 0; % are we sure about this?
 delta_phiS = -delta_phi;
 delta_tort2 = -2*delta_phi./phi; % not used in Julia
 delta_D_bio = -2*z.*D_bio/lambda_b^2; % not used in Julia
-delta_D_bio(1) = 0; % are we sure about this?
 
 % biodiffusion depth-attenuation: see Boudreau (1996); Fiadeiro and Veronis (1977)
 Peh=w.*z_res./(2*D_bio);      %one half the cell Peclet number (Eq. 97 in Boudreau 1996)
@@ -162,15 +161,20 @@ for i=i:t_length-1
         -w(1) * -1 * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))... %advection
         +TotR_OC(1)); %reaction
     
-    if i == 1
-        disp(' ')
-        disp('original advective OC term at top:')
-        disp(t_res*(-w(1) * -1 * (2*Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))))
-        disp('corrected advective OC term at top:')
-        disp(t_res*(-w(1) * -1 * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))))
-        disp(' ')
-    end % if    
-    
+%     if i == 1
+%         disp(' ')
+%         disp('original irrigative O2 term at top:')
+%         disp(t_res*alpha(1) * ( O2w - O2(1) ))
+%         disp(' ')
+%     end % if
+%     if i == 1
+%         disp(' ')
+%         disp('original advective OC term at top:')
+%         disp(t_res*(-w(1) * -1 * (2*Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))))
+%         disp('corrected advective OC term at top:')
+%         disp(t_res*(-w(1) * -1 * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))))
+%         disp(' ')
+%     end % if
 %     if i == 1
 %         disp(' ')
 %         disp('original diffusive OC term at top:')
@@ -193,7 +197,7 @@ for i=i:t_length-1
 
     OC_z = OC(z_length) + t_res * (D_bio(z_length) * 2 * ( (OC(z_length-1) - OC(z_length)) / z_res(z_length).^2)... %diffusion
         - APPW(z_length) * (-sigma(z_length)*OC(z_length-1) + sigma(z_length)*OC(z_length))/z_res(z_length)... %advection
-        +TotR_OC(z_length)); 
+        +TotR_OC(z_length));
     
     %% all other depths
     % z_length=100 seems to be the sweet spot where loop and logical
