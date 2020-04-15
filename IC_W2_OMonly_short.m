@@ -6,8 +6,8 @@ Station= "Hammond1996 - W2";
 z_end=20e-2;                               %[m] bottom sediment depth, should be a multiple of z_res
 z_res=2e-2;                               %[m] depth resolution
 z_length=z_end/z_res;                %[no unit] number of depth layers
-z = linspace(0,z_end,z_length);  %[m] depth
-z_res=ones(1,z_length).*z_res;     %[m] depth resolution
+z = linspace(0, z_end, z_length+1); %[m] depth
+z_res = ones(size(z))*z_res; %[m] depth resolution
 
 %% definition of the temporal domain
 % t_end=20000;                             %[a] total timespan of the problem
