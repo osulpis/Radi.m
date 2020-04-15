@@ -45,7 +45,7 @@ alpha=alpha_0.*exp(-(z/0.05).^2);                                               
 % delta_D_bio_i = [0 diff(D_bio)]; % [m/a]
 % Use derivative equations instead! all checked vs finite differences
 delta_phi = -phiBeta.*(phi0 - phiInf).*exp(-phiBeta*z);
-delta_phi(1) = 0; % are we sure about this?
+% delta_phi(1) = 0; % don't do this
 delta_phiS = -delta_phi;
 delta_tort2 = -2*delta_phi./phi; % not used in Julia
 delta_D_bio = -2*z.*D_bio/lambda_b^2; % not used in Julia
