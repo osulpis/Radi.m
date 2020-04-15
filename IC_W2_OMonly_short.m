@@ -37,7 +37,7 @@ tort2=tort.^2;                                        %tortuosity squared
 RC=1/(6.9*1e-3*PO4w./(1e-6*rho_sw)+6*1e-3);      %P:C computed as a function of SRP from Galbraith and Martiny PNAS 2015
 RN=11;                    % value at 60 degS from Martiny et al. Nat G 2013 
 RP=1;                          % Redfield ratio for P in the deep sea
-M_OM=30.03+(RN/RC)*17.03+(RP/RC)*97.994; %[g of OM per mol of OC] Organic Matter molar mass
+M_OM=30.031+(RN/RC)*17.031+(RP/RC)*97.994; %[g of OM per mol of OC] Organic Matter molar mass
 
 %% solid fluxes and solid initial conditions
 Foc=1.000041991200773; %[mol/m2/a] flux of total organic carbon to the bottom 
