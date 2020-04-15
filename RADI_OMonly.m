@@ -114,8 +114,15 @@ phiS_j = phiS(j);
 % Dtort2_TA = D_TA./tort2_j;
 
 %% Begin timestep loop
+O2f = NaN(z_length, t_length);
+OCf = NaN(z_length, t_length);
+O2f(:, 1) = O2;
+OCf(:, 1) = OC;
+
 for i=i:t_length-1
 
+%     disp(i)
+    
     %F_O2i=D_O2*phi(1)*(O2(:,1)-O2w)./5e-3;
     %F_DICi=D_DIC*phi(1)*(DIC(:,1)-DICw)./5e-3;
     %F_TAi=D_TA*phi(1)*(TA(:,1)-TAw)./5e-3;
@@ -191,13 +198,9 @@ for i=i:t_length-1
     O2(O2<0)=0;
     OC(OC<0)=0;
     
-    %% save data every year
-    if i == plot_number(idx)
-        disp(plot_number(idx)*t_res)
-        O2f(idx,:)=O2;
-        OCf(idx,:)=OC;
-        idx=idx+1;
-    end
+    %% save data every step
+    O2f(:, i+1) = O2;
+    OCf(:, i+1) = OC;
 
 end
 
