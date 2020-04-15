@@ -5,8 +5,8 @@ Station= "Hammond1996 - W2";
 %% definition of the spatial domain with two different resolutions
 z_end=20e-2;                               %[m] bottom sediment depth, should be a multiple of z_res
 z_res=0.1e-2;                               %[m] depth resolution
-z_length=z_end/z_res;                %[no unit] number of depth layers
-z = linspace(0, z_end, z_length+1); %[m] depth
+z_length = 1 + z_end/z_res;                %[no unit] number of depth layers
+z = linspace(0, z_end, z_length); %[m] depth
 z_res = ones(size(z))*z_res; %[m] depth resolution
 
 %% definition of the temporal domain
