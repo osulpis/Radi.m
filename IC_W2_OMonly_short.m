@@ -11,8 +11,8 @@ z_res=ones(1,z_length).*z_res;     %[m] depth resolution
 
 %% definition of the temporal domain
 % t_end=20000;                             %[a] total timespan of the problem
-t_end = 1;
-t_res=1/10;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
+t_end = 5/8760;
+t_res=1/8760;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
 % t_res = 1/8760;
 t_length=t_end/t_res;                 %[no unit] number of time layers
 
