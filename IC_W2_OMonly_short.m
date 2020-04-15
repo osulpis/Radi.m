@@ -4,15 +4,15 @@ Station= "Hammond1996 - W2";
 
 %% definition of the spatial domain with two different resolutions
 z_end=20e-2;                               %[m] bottom sediment depth, should be a multiple of z_res
-z_res=0.1e-2;                               %[m] depth resolution
+z_res=2e-2;                               %[m] depth resolution
 z_length=z_end/z_res;                %[no unit] number of depth layers
 z = linspace(0,z_end,z_length);  %[m] depth
 z_res=ones(1,z_length).*z_res;     %[m] depth resolution
 
 %% definition of the temporal domain
 % t_end=20000;                             %[a] total timespan of the problem
-t_end = 1000;
-t_res=1/128000;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
+t_end = 1;
+t_res=1/10;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
 % t_res = 1/8760;
 t_length=t_end/t_res;                 %[no unit] number of time layers
 
@@ -52,4 +52,6 @@ end
 
 %% diffusive boundary layer
 dbl=1e-3;            %[m] thickness at location taken from Sulpis et al 2018 PNAS
-save('data/IC_W2_OMonly.mat')
+save('data/IC_W2_OMonly_short.mat')
+
+rerun = 0;
