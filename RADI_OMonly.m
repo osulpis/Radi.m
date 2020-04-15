@@ -114,6 +114,11 @@ phiS_j = phiS(j);
 % Dtort2_TA = D_TA./tort2_j;
 
 %% Begin timestep loop
+% Start with some O2 and OC
+O2(:) = O2w*2/3;
+OC(:) = 1e4;
+
+% Preallocate saving arrays
 O2f = NaN(z_length, t_length);
 OCf = NaN(z_length, t_length);
 O2f(:, 1) = O2;
@@ -206,3 +211,5 @@ end
 
 tEnd = toc(tStart);
 fprintf('%d minutes and %f seconds\n', floor(tEnd/60), rem(tEnd,60));
+
+RADIplot
