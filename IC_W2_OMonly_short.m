@@ -28,7 +28,10 @@ O2w=(159.7)*1e-6*rho_sw;                                   %[mol/m3] dissolved o
 PO4w=(2.39)*1e-6*rho_sw;                                   %[mol/m3] nitrate from GLODAP at sation location, bottom waters
 
 %% depth-dependent porosity
-phi = (0.85-0.74)*exp(-33.*z)+0.74;         %porosity profile (porewater bulk fraction) fitted from station7 mooring3 of cruise NBP98-2 by Sayles et al DSR 2001
+phiBeta = 33;
+phiInf = 0.74;
+phi0 = 0.85;
+phi = (phi0 - phiInf)*exp(-phiBeta*z) + phiInf;         %porosity profile (porewater bulk fraction) fitted from station7 mooring3 of cruise NBP98-2 by Sayles et al DSR 2001
 phiS=1-phi;                                          %solid volume fraction
 tort=(1-2*log(phi)).^0.5;                      %tortuosity from Boudreau (1996, GCA)
 tort2=tort.^2;                                        %tortuosity squared
