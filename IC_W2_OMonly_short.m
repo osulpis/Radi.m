@@ -40,7 +40,7 @@ RP=1;                          % Redfield ratio for P in the deep sea
 M_OM=30.03+(RN/RC)*17.03+(RP/RC)*97.994; %[g of OM per mol of OC] Organic Matter molar mass
 
 %% solid fluxes and solid initial conditions
-Foc=1;                       %[mol/m2/a] flux of total organic carbon to the bottom 
+Foc=1.000041991200773; %[mol/m2/a] flux of total organic carbon to the bottom 
 
 Ftot=Foc.*M_OM;      %[g/m2/a] total sediment flux 
 v0=(Ftot)/(2.65e6*phiS(1));                                             %[m/a] bulk burial velocity at sediment-water interface
