@@ -25,14 +25,14 @@ tStart = tic;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% temperature dependent "free solution" diffusion coefficients
-D_O2=0.034862+0.001409*T;           %[m2/a] oxygen diffusion coefficient from Li and Gregiry
+D_O2=0.034862+0.001409*T; %[m2/a] oxygen diffusion coefficient from Li and Gregiry
 
 %% bioturbation (for solids)
-D_bio_0=1e-4*0.0232*(Foc*1e2)^0.85;                                              %[m2/a] surf bioturb coeff, Archer et al (2002)
+D_bio_0=1e-4*0.0232*(Foc*1e2)^0.85; %[m2/a] surf bioturb coeff, Archer et al (2002)
 D_bio=D_bio_0*exp(-(z./0.08).^2).*((O2w/1e-3)/((O2w/1e-3)+20)); %[m2/a] bioturb coeff, Archer et al (2002)
 
 %% irrigation (for solutes)
-alpha_0=11*(atan((5*Foc*1e2-400)/400)/3.1416+0.5)-0.9...
+alpha_0=11*(atan((5*Foc*1e2-400)/400)/pi+0.5)-0.9...
     +20*((O2w/1e-3)/((O2w/1e-3)+10))*exp(-(O2w/1e-3)/10)*Foc*1e2/(Foc*1e2+30);    %[/a] from Archer et al (2002)
 alpha=alpha_0.*exp(-(z/0.05).^2);                                                                                   %[/a] Archer et al (2002) the depth of 5 cm was changed
 
@@ -48,7 +48,6 @@ Peh=w.*z_res./(2*D_bio);      %one half the cell Peclet number (Eq. 97 in Boudre
 sigma=1./tanh(Peh)-1./(Peh);  %Eq. 96 in Boudreau 1996
 
 %% organic matter degradation parameters
- 
 krefractory=80.25*D_bio_0*exp(-z./1);         %[/a] from Archer et al (2002)
 
 %%
@@ -140,6 +139,12 @@ for i=i:t_length-1
     % single matrix but keeping as separate vectors // MPH
     TotR_O2 = -phiS./phi.*Rg;
     TotR_OC=-OC.*krefractory;
+    if i == 1
+        disp(' ')
+        disp('alpha_0:')
+        disp(alpha_0)
+        disp(' ')
+    end % if
     
     %% top boundary condition: prescribed solid fluxes and diffusive boundary layer control on solutes
     % Calculate here, but don't set in arrays yet, otherwise calculations
