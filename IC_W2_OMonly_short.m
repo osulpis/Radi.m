@@ -26,6 +26,7 @@ P=rho_sw.*9.81.*SF_depth/1e5; %[bar] in situ pressure computed from GSW toolbox
 %% bottom-water values of dissolved species
 dO2w=(159.7)*1e-6*rho_sw;                                   %[mol/m3] dissolved oxygen
 dtPO4w=(2.39)*1e-6*rho_sw;                                   %[mol/m3] nitrate from GLODAP at sation location, bottom waters
+dtCO2w=(2324)*1e-6*rho_sw;                                   %[mol/m3] nitrate from GLODAP at sation location, bottom waters
 
 %% depth-dependent porosity
 phiBeta = 33;
@@ -46,12 +47,12 @@ M_H3PO4=97.994; %[g per mol]
 M_OM=M_CH2O+(RN/RC)*M_NH3+(RP/RC)*M_H3PO4; %[g of OM per mol of OC] Organic Matter molar mass
 
 %% solid fluxes and solid initial conditions
-FoC=1.000041991200773./10; %[mol/m2/a] flux of total organic carbon to the bottom 
-FroC=FoC*0.15; %[mol/m2/a] flux of total organic carbon to the bottom 
-FsoC=FoC*0.15; %[mol/m2/a] flux of total organic carbon to the bottom 
-FfoC=FoC*0.7; %[mol/m2/a] flux of total organic carbon to the bottom 
+Foc=1.000041991200773./10; %[mol/m2/a] flux of total organic carbon to the bottom 
+Froc=Foc*0.15; %[mol/m2/a] flux of total organic carbon to the bottom 
+Fsoc=Foc*0.15; %[mol/m2/a] flux of total organic carbon to the bottom 
+Ffoc=Foc*0.7; %[mol/m2/a] flux of total organic carbon to the bottom 
 
-Ftot=FoC.*M_OM;      %[g/m2/a] total sediment flux 
+Ftot=Foc.*M_OM;      %[g/m2/a] total sediment flux 
 v0=(Ftot)/(2.65e6*phiS(1));                                             %[m/a] bulk burial velocity at sediment-water interface
 vinf=v0*phiS(1)/phiS(1,ndepths);                                    %[m/a]bulk burial velocity at the infinite depth
 for j=1:ndepths

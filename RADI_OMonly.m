@@ -25,16 +25,17 @@ tStart = tic;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% temperature dependent "free solution" diffusion coefficients
-D_dO2=0.034862+0.001409*T; %[m2/a] oxygen diffusion coefficient from Li and Gregiry
+D_dO2=0.034862+0.001409*T; %[m2/a] oxygen diffusion coefficient from Li and Gregory
+D_dtCO2=0.015169+0.000793*T;         %[m2/a] approximted to bicarbonate diffusion coefficient from Hulse et al (2018)
 
 %% bioturbation (for solids)
-D_bio_0=1e-4*0.0232*(FoC*1e2)^0.85; %[m2/a] surf bioturb coeff, Archer et al (2002)
+D_bio_0=1e-4*0.0232*(Foc*1e2)^0.85; %[m2/a] surf bioturb coeff, Archer et al (2002)
 lambda_b = 0.08;
 D_bio=D_bio_0*exp(-(depths./lambda_b).^2).*((dO2w/1e-3)/((dO2w/1e-3)+20)); %[m2/a] bioturb coeff, Archer et al (2002)
 
 %% irrigation (for solutes)
-alpha_0=11*(atan((5*FoC*1e2-400)/400)/pi+0.5)-0.9...
-    +20*((dO2w/1e-3)/((dO2w/1e-3)+10))*exp(-(dO2w/1e-3)/10)*FoC*1e2/(FoC*1e2+30);    %[/a] from Archer et al (2002)
+alpha_0=11*(atan((5*Foc*1e2-400)/400)/pi+0.5)-0.9...
+    +20*((dO2w/1e-3)/((dO2w/1e-3)+10))*exp(-(dO2w/1e-3)/10)*Foc*1e2/(Foc*1e2+30);    %[/a] from Archer et al (2002)
 lambda_i=0.05;
 alpha=alpha_0.*exp(-(depths/lambda_i).^2);                                                                                   %[/a] Archer et al (2002) the depth of 5 cm was changed
 
@@ -58,11 +59,11 @@ sigma=1./tanh(Peh)-1./(Peh);  %Eq. 96 in Boudreau 1996
 
 %% organic matter degradation parameters
 
-kslow_0=1e-4 * (FoC*1e2)^0.85;    %[/a] tuned parameter, function from Archer et al (2002)
+kslow_0=1e-4 * (Foc*1e2)^0.85;    %[/a] tuned parameter, function from Archer et al (2002)
 lambda_slow=1;     %[m] tuned parameter
 kslow=kslow_0*exp(-depths./lambda_slow);    %[/a] from Archer et al (2002)
 
-kfast_0=1e-2 * (FoC*1e2)^0.85;    %[/a] tuned parameter, function from Archer et al (2002)
+kfast_0=1e-2 * (Foc*1e2)^0.85;    %[/a] tuned parameter, function from Archer et al (2002)
 lambda_fast=0.03;     %[m] tuned parameter
 kfast=kfast_0*exp(-depths./lambda_fast);    %[/a] from Archer et al (2002)
 
@@ -73,9 +74,10 @@ kfast=kfast_0*exp(-depths./lambda_fast);    %[/a] from Archer et al (2002)
 
 if rerun == 0 %concentrations set to zero for solids, bottom water values for not-too-sensitive solutes
     dO2(1,1:ndepths)=0;            
-    proC(1,1:ndepths)=0;
-    psoC(1,1:ndepths)=0;             
-    pfoC(1,1:ndepths)=0;             
+    dtCO2(1,1:ndepths)=0;            
+    proc(1,1:ndepths)=0;
+    psoc(1,1:ndepths)=0;             
+    pfoc(1,1:ndepths)=0;             
     % variable saving
     i=1;
     idx=1;
@@ -84,18 +86,20 @@ if rerun == 0 %concentrations set to zero for solids, bottom water values for no
     
 elseif rerun==1 %if it is a rerun, initial conditions are concentrations from last time step
     dO2=dO2f(idx-1,:);            %[mol/m3]
-    proC=proC(idx-1,:);                %[mol/m3]
-    psoC=psoC(idx-1,:);                %[mol/m3]
-    pfoC=pfoC(idx-1,:);                %[mol/m3]
+    dtCO2(1,1:ndepths)=0;            
+    proc=proc(idx-1,:);                %[mol/m3]
+    psoc=psoc(idx-1,:);                %[mol/m3]
+    pfoc=pfoc(idx-1,:);                %[mol/m3]
     plot_number=0:t_length/stoptime:t_length;  %we will only keep the variables every year
     i=plot_number(idx-1);
     
 else
     % initial condition for solutes: bottom-water value
     dO2=dO2ic;                %[mol/m3]
-    proC=proC_ic;
-    psoC=psoC_ic;
-    pfoC=pfoC_ic;
+    dtCO2=dtCO2ic;                %[mol/m3]
+    proc=proc_ic;
+    psoc=psoc_ic;
+    pfoc=pfoc_ic;
     
     % variable saving
     i=1;
@@ -138,15 +142,17 @@ phiS_j = phiS(j);
 %% Begin timestep loop
 % Start with some O2 and OC
 dO2(:) = dO2w*2/3;
-proC(:) = 3e4;
-psoC(:) = 3e3;
-pfoC(:) = 3e2;
+dtCO2(:) = dtCO2w;
+proc(:) = 3e4;
+psoc(:) = 3e3;
+pfoc(:) = 3e2;
 
 % Preallocate saving arrays
 dO2f = NaN(ndepths, t_length);
-proCf = NaN(ndepths, t_length);
-psoCf = NaN(ndepths, t_length);
-pfoCf = NaN(ndepths, t_length);
+dtCO2f = NaN(ndepths, t_length);
+procf = NaN(ndepths, t_length);
+psocf = NaN(ndepths, t_length);
+pfocf = NaN(ndepths, t_length);
 
 for i=i:t_length-1
 
@@ -157,81 +163,44 @@ for i=i:t_length-1
     %F_TAi=D_TA*phi(1)*(TA(:,1)-TAw)./5e-3;
     
     %% Redox reaction rates
-    Rs = psoC.*kslow;
-    Rf = pfoC.*kfast;
+    Rs = psoc.*kslow;
+    Rf = pfoc.*kfast;
     
     %% Calculate all reactions (19 species, units: [mol/m3/a])
     % This section ~2x faster by not putting all the reactions into a
     % single matrix but keeping as separate vectors // MPH
     TotR_dO2 = -phiS./phi.*(Rs + Rf);
-    TotR_psoC=-Rs;
-    TotR_pfoC=-Rf;
+    TotR_dtCO2 = phiS./phi.*(Rs + Rf);
+    TotR_psoc=-Rs;
+    TotR_pfoc=-Rf;
     
     %% top boundary condition: prescribed solid fluxes and diffusive boundary layer control on solutes
     % Calculate here, but don't set in arrays yet, otherwise calculations
     % at other depths use values from the wrong timestep // MPH [v20]
     
-    %delete// OS
-    %O2_1 = O2(1) + interval * ( D_O2 / tort2(1) * (2*O2(2) - 2*O2(1) + TR(1) * (O2w - O2(1))) / (z_res(1)^2) ... %diffusion
-    %    - u(1) * -1 * TR(1) * ( O2w - O2(1)) / (2*z_res(1)) ... %advection
-    %   + alpha(1) * ( O2w - O2(1) ) ... %irrigation
-    %   + TotR_O2(1)); %reaction
-    
-    %implement nonzero delta_phi at the interface // OS
     dO2_1 = dO2(1) + interval * ( D_dO2 / tort2(1) * (2*dO2(2) - 2*dO2(1) + TR(1) * (dO2w - dO2(1))) / (z_res(1)^2) ... %diffusion
         - (u(1) - D_dO2.*DFF(1)) * -1 * TR(1) * ( dO2w - dO2(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * ( dO2w - dO2(1) ) ... %irrigation
         + TotR_dO2(1)); %reaction
     
-    %delete//OS
-    %OC_1 = OC(1) + interval * (D_bio(1) * ( 2 * OC(2) - 2 * OC(1) +... %diffusion
-    %    2 * z_res(1) * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-    %   -w(1) * -1 * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))... %advection
-    %   +TotR_OC(1)); %reaction
-
-    %implement nonzero sigma at the interface // OS
-    proC_1 = proC(1) + interval * (D_bio(1) * ( 2 * proC(2) - 2 * proC(1) +... %diffusion
-        2 * z_res(1) * (FroC - phiS(1) * w(1) * proC(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (FroC - phiS(1) * w(1) * proC(1)) / (D_bio(1) * phiS(1))); %advection
-
-    %implement nonzero sigma at the interface // OS
-    psoC_1 = psoC(1) + interval * (D_bio(1) * ( 2 * psoC(2) - 2 * psoC(1) +... %diffusion
-        2 * z_res(1) * (FsoC - phiS(1) * w(1) * psoC(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (FsoC - phiS(1) * w(1) * psoC(1)) / (D_bio(1) * phiS(1))... %advection
-        +TotR_psoC(1)); %reaction
-
-    %implement nonzero sigma at the interface // OS
-    pfoC_1 = pfoC(1) + interval * (D_bio(1) * ( 2 * pfoC(2) - 2 * pfoC(1) +... %diffusion
-        2 * z_res(1) * (FfoC - phiS(1) * w(1) * pfoC(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (FfoC - phiS(1) * w(1) * pfoC(1)) / (D_bio(1) * phiS(1))... %advection
-        +TotR_pfoC(1)); %reaction    
+    dtCO2_1 = dtCO2(1) + interval * ( D_dtCO2 / tort2(1) * (2*dtCO2(2) - 2*dtCO2(1) + TR(1) * (dtCO2w - dtCO2(1))) / (z_res(1)^2) ... %diffusion
+        - (u(1) - D_dtCO2.*DFF(1)) * -1 * TR(1) * ( dtCO2w - dtCO2(1)) / (2*z_res(1)) ... %advection
+        + alpha(1) * ( dtCO2w - dtCO2(1) ) ... %irrigation
+        + TotR_dtCO2(1)); %reaction
     
-%     if i == 1
-%         disp(' ')
-%         disp('original irrigative O2 term at top:')
-%         disp(interval*alpha(1) * ( O2w - O2(1) ))
-%         disp(' ')
-%     end % if
-%     if i == 1
-%         disp(' ')
-%         disp('original advective OC term at top:')
-%         disp(interval*(-w(1) * -1 * (2*Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))))
-%         disp('corrected advective OC term at top:')
-%         disp(interval*(-w(1) * -1 * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))))
-%         disp(' ')
-%     end % if
-%     if i == 1
-%         disp(' ')
-%         disp('original diffusive OC term at top:')
-%         disp(interval*(D_bio(1) * ( 2 * OC(2) - 2 * OC(1) +... %diffusion
-%             2 * z_res(1) * (2*Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ...
-%             ) / (z_res(1).^2)))
-%         disp('corrected diffusive OC term at top:')
-%         disp(interval*(D_bio(1) * ( 2 * OC(2) - 2 * OC(1) +... %diffusion
-%             2 * z_res(1) * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ...
-%             ) / (z_res(1).^2)))
-%         disp(' ')
-%     end % if
+    proc_1 = proc(1) + interval * (D_bio(1) * ( 2 * proc(2) - 2 * proc(1) +... %diffusion
+        2 * z_res(1) * (Froc - phiS(1) * w(1) * proc(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
+        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (Froc - phiS(1) * w(1) * proc(1)) / (D_bio(1) * phiS(1))); %advection
+
+    psoc_1 = psoc(1) + interval * (D_bio(1) * ( 2 * psoc(2) - 2 * psoc(1) +... %diffusion
+        2 * z_res(1) * (Fsoc - phiS(1) * w(1) * psoc(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
+        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (Fsoc - phiS(1) * w(1) * psoc(1)) / (D_bio(1) * phiS(1))... %advection
+        +TotR_psoc(1)); %reaction
+
+    pfoc_1 = pfoc(1) + interval * (D_bio(1) * ( 2 * pfoc(2) - 2 * pfoc(1) +... %diffusion
+        2 * z_res(1) * (Ffoc - phiS(1) * w(1) * pfoc(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
+        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (Ffoc - phiS(1) * w(1) * pfoc(1)) / (D_bio(1) * phiS(1))... %advection
+        +TotR_pfoc(1)); %reaction        
       
     %% bottom boundary condition: gradients disappear
     % Calculate here, but don't set in arrays yet, otherwise calculations
@@ -240,16 +209,20 @@ for i=i:t_length-1
         + alpha(ndepths) * (dO2w - dO2(ndepths)) ... %irrigation
         +TotR_dO2(ndepths));
 
-    proC_z = proC(ndepths) + interval * (D_bio(ndepths) * 2 * ( (proC(ndepths-1) - proC(ndepths)) / z_res(ndepths).^2)... %diffusion
-        - APPW(ndepths) * (-sigma(ndepths)*proC(ndepths-1) + sigma(ndepths)*proC(ndepths))/z_res(ndepths)); %advection
+    dtCO2_z = dtCO2(ndepths) + interval * (D_dtCO2 / tort2(ndepths) * 2 * ((dtCO2(ndepths-1) - dtCO2(ndepths)) / z_res(ndepths).^2) ...  %diffusion
+        + alpha(ndepths) * (dtCO2w - dtCO2(ndepths)) ... %irrigation
+        +TotR_dtCO2(ndepths));
     
-    psoC_z = psoC(ndepths) + interval * (D_bio(ndepths) * 2 * ( (psoC(ndepths-1) - psoC(ndepths)) / z_res(ndepths).^2)... %diffusion
-        - APPW(ndepths) * (-sigma(ndepths)*psoC(ndepths-1) + sigma(ndepths)*psoC(ndepths))/z_res(ndepths)... %advection
-        +TotR_psoC(ndepths));
+    proc_z = proc(ndepths) + interval * (D_bio(ndepths) * 2 * ( (proc(ndepths-1) - proc(ndepths)) / z_res(ndepths).^2)... %diffusion
+        - APPW(ndepths) * (-sigma(ndepths)*proc(ndepths-1) + sigma(ndepths)*proc(ndepths))/z_res(ndepths)); %advection
     
-    pfoC_z = pfoC(ndepths) + interval * (D_bio(ndepths) * 2 * ( (pfoC(ndepths-1) - pfoC(ndepths)) / z_res(ndepths).^2)... %diffusion
-        - APPW(ndepths) * (-sigma(ndepths)*pfoC(ndepths-1) + sigma(ndepths)*pfoC(ndepths))/z_res(ndepths)... %advection
-        +TotR_pfoC(ndepths));
+    psoc_z = psoc(ndepths) + interval * (D_bio(ndepths) * 2 * ( (psoc(ndepths-1) - psoc(ndepths)) / z_res(ndepths).^2)... %diffusion
+        - APPW(ndepths) * (-sigma(ndepths)*psoc(ndepths-1) + sigma(ndepths)*psoc(ndepths))/z_res(ndepths)... %advection
+        +TotR_psoc(ndepths));
+    
+    pfoc_z = pfoc(ndepths) + interval * (D_bio(ndepths) * 2 * ( (pfoc(ndepths-1) - pfoc(ndepths)) / z_res(ndepths).^2)... %diffusion
+        - APPW(ndepths) * (-sigma(ndepths)*pfoc(ndepths-1) + sigma(ndepths)*pfoc(ndepths))/z_res(ndepths)... %advection
+        +TotR_pfoc(ndepths));
     
     %% all other depths
     % ndepths=100 seems to be the sweet spot where loop and logical
@@ -266,62 +239,75 @@ for i=i:t_length-1
         (D_dO2./tort2_j).*((dO2_jp1 - 2*dO2_j + dO2_jm1)./z_res2_j) + ...
         alpha_j.*(dO2w - dO2_j));
 
+    % Dissolved inorganic carbon
+    dtCO2_j = dtCO2(j);
+    dtCO2_jp1 = dtCO2(jp1);
+    dtCO2_jm1 = dtCO2(jm1);
+    dtCO2(j) = dtCO2_j + interval*(TotR_dtCO2(j) - ...
+        (u_j - D_dtCO2*DFF_j).*(dtCO2_jp1 - dtCO2_jm1)./(2*z_res_j) + ...
+        (D_dtCO2./tort2_j).*((dtCO2_jp1 - 2*dtCO2_j + dtCO2_jm1)./z_res2_j) + ...
+        alpha_j.*(dtCO2w - dtCO2_j));
+    
     % Refractory organic carbon
-    proC_j = proC(j);
-    proC_jp1 = proC(jp1);
-    proC_jm1 = proC(jm1);
-    proC(j) = proC_j + interval*(... 
-        - APPW_j.*(((1 - sigma_j).*proC_jp1 + ...
-        2*sigma_j.*proC_j - ...
-        (1 + sigma_j).*proC_jm1)./(2*z_res_j)) + ...
-        D_bio_j.*((proC_jp1 - 2*proC_j + ...
-        proC_jm1)./z_res2_j));
+    proc_j = proc(j);
+    proc_jp1 = proc(jp1);
+    proc_jm1 = proc(jm1);
+    proc(j) = proc_j + interval*(... 
+        - APPW_j.*(((1 - sigma_j).*proc_jp1 + ...
+        2*sigma_j.*proc_j - ...
+        (1 + sigma_j).*proc_jm1)./(2*z_res_j)) + ...
+        D_bio_j.*((proc_jp1 - 2*proc_j + ...
+        proc_jm1)./z_res2_j));
 
         % Slow decay organic carbon
-    psoC_j = psoC(j);
-    psoC_jp1 = psoC(jp1);
-    psoC_jm1 = psoC(jm1);
-    psoC(j) = psoC_j + interval*(TotR_psoC(j) - ...
-        APPW_j.*(((1 - sigma_j).*psoC_jp1 + ...
-        2*sigma_j.*psoC_j - ...
-        (1 + sigma_j).*psoC_jm1)./(2*z_res_j)) + ...
-        D_bio_j.*((psoC_jp1 - 2*psoC_j + ...
-        psoC_jm1)./z_res2_j));
+    psoc_j = psoc(j);
+    psoc_jp1 = psoc(jp1);
+    psoc_jm1 = psoc(jm1);
+    psoc(j) = psoc_j + interval*(TotR_psoc(j) - ...
+        APPW_j.*(((1 - sigma_j).*psoc_jp1 + ...
+        2*sigma_j.*psoc_j - ...
+        (1 + sigma_j).*psoc_jm1)./(2*z_res_j)) + ...
+        D_bio_j.*((psoc_jp1 - 2*psoc_j + ...
+        psoc_jm1)./z_res2_j));
     
         % Fast decay organic carbon
-    pfoC_j = pfoC(j);
-    pfoC_jp1 = pfoC(jp1);
-    pfoC_jm1 = pfoC(jm1);
-    pfoC(j) = pfoC_j + interval*(TotR_pfoC(j) - ...
-        APPW_j.*(((1 - sigma_j).*pfoC_jp1 + ...
-        2*sigma_j.*pfoC_j - ...
-        (1 + sigma_j).*pfoC_jm1)./(2*z_res_j)) + ...
-        D_bio_j.*((pfoC_jp1 - 2*pfoC_j + ...
-        pfoC_jm1)./z_res2_j));    
+    pfoc_j = pfoc(j);
+    pfoc_jp1 = pfoc(jp1);
+    pfoc_jm1 = pfoc(jm1);
+    pfoc(j) = pfoc_j + interval*(TotR_pfoc(j) - ...
+        APPW_j.*(((1 - sigma_j).*pfoc_jp1 + ...
+        2*sigma_j.*pfoc_j - ...
+        (1 + sigma_j).*pfoc_jm1)./(2*z_res_j)) + ...
+        D_bio_j.*((pfoc_jp1 - 2*pfoc_j + ...
+        pfoc_jm1)./z_res2_j));    
     
     %% Set top and bottom conditions in arrays
     % Doing this here means that the correct values are used in calculating
     % diffusion and advection at all other depths // MPH [v20]
     dO2(1) = dO2_1;
-    proC(1) = proC_1;
-    psoC(1) = psoC_1;
-    pfoC(1) = pfoC_1;
+    dtCO2(1) = dtCO2_1;
+    proc(1) = proc_1;
+    psoc(1) = psoc_1;
+    pfoc(1) = pfoc_1;
     dO2(ndepths) = dO2_z;
-    proC(ndepths) = proC_z;
-    psoC(ndepths) = psoC_z;
-    pfoC(ndepths) = pfoC_z;
+    dtCO2(ndepths) = dtCO2_z;
+    proc(ndepths) = proc_z;
+    psoc(ndepths) = psoc_z;
+    pfoc(ndepths) = pfoc_z;
     
     %% set very small or negative concentration to zero
     dO2(dO2<0)=0;
-    proC(proC<0)=0;
-    psoC(psoC<0)=0;
-    pfoC(pfoC<0)=0;
+    dtCO2(dtCO2<0)=0;
+    proc(proc<0)=0;
+    psoc(psoc<0)=0;
+    pfoc(pfoc<0)=0;
     
     %% save data every step
     dO2f(:, i+1) = dO2;
-    proCf(:, i+1) = proC;
-    psoCf(:, i+1) = psoC;
-    pfoCf(:, i+1) = pfoC;
+    dtCO2f(:,i+1) = dtCO2;
+    procf(:, i+1) = proc;
+    psocf(:, i+1) = psoc;
+    pfocf(:, i+1) = pfoc;
     
 end
 
