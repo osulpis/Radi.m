@@ -151,14 +151,29 @@ for i=i:t_length-1
     %% top boundary condition: prescribed solid fluxes and diffusive boundary layer control on solutes
     % Calculate here, but don't set in arrays yet, otherwise calculations
     % at other depths use values from the wrong timestep // MPH [v20]
+    
+    %delete// OS
+    %O2_1 = O2(1) + t_res * ( D_O2 / tort2(1) * (2*O2(2) - 2*O2(1) + TR(1) * (O2w - O2(1))) / (z_res(1)^2) ... %diffusion
+    %    - u(1) * -1 * TR(1) * ( O2w - O2(1)) / (2*z_res(1)) ... %advection
+    %   + alpha(1) * ( O2w - O2(1) ) ... %irrigation
+    %   + TotR_O2(1)); %reaction
+    
+    %implement nonzero delta_phi at the interface // OS
     O2_1 = O2(1) + t_res * ( D_O2 / tort2(1) * (2*O2(2) - 2*O2(1) + TR(1) * (O2w - O2(1))) / (z_res(1)^2) ... %diffusion
-        - u(1) * -1 * TR(1) * ( O2w - O2(1)) / (2*z_res(1)) ... %advection
+        - (u(1) - D_O2.*DFF(1)) * -1 * TR(1) * ( O2w - O2(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * ( O2w - O2(1) ) ... %irrigation
         + TotR_O2(1)); %reaction
+    
+    %delete//OS
+    %OC_1 = OC(1) + t_res * (D_bio(1) * ( 2 * OC(2) - 2 * OC(1) +... %diffusion
+    %    2 * z_res(1) * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
+    %   -w(1) * -1 * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))... %advection
+    %   +TotR_OC(1)); %reaction
 
+    %implement nonzero sigma at the interface // OS
     OC_1 = OC(1) + t_res * (D_bio(1) * ( 2 * OC(2) - 2 * OC(1) +... %diffusion
         2 * z_res(1) * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-        -w(1) * -1 * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))... %advection
+        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))... %advection
         +TotR_OC(1)); %reaction
     
 %     if i == 1
