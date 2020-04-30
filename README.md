@@ -15,3 +15,11 @@ IC_W29 % set environmental conditions
 rerun = 0; % for a fresh start; 1 for a re-run
 RADI % run the model
 ```
+
+```matlab
+delta_phi = -phiBeta.*(phi0 - phiInf).*exp(-phiBeta*depths);
+% delta_phi(1) = 0; % don't do this
+delta_phiS = -delta_phi;
+delta_tort2 = -2*delta_phi./phi; % not used in Julia
+delta_D_bio = -2*depths.*D_bio/lambda_b^2; % not used in Julia
+```
