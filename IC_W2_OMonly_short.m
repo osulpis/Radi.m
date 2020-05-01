@@ -4,15 +4,15 @@ Station= "Hammond1996 - W2";
 
 %% definition of the spatial domain with two different resolutions
 z_max=20e-2;                               %[m] bottom sediment depth, should be a multiple of z_res
-z_res=2e-2;                               %[m] depth resolution
+z_res=0.5e-2;                               %[m] depth resolution
 ndepths = 1 + z_max/z_res;                %[no unit] number of depth layers
 depths = linspace(0, z_max, ndepths); %[m] depth
 z_res = ones(size(depths))*z_res; %[m] depth resolution
 
 %% definition of the temporal domain
 % t_end=20000;                             %[a] total timespan of the problem
-stoptime = 500/8760;
-interval=1/8760;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
+stoptime = 50;
+interval=5/128000;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
 % t_res = 1/8760;
 t_length=stoptime/interval;                 %[no unit] number of time layers
 
