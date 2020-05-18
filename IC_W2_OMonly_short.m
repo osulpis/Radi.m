@@ -11,8 +11,8 @@ z_res = ones(size(depths))*z_res; %[m] depth resolution
 
 %% definition of the temporal domain
 % t_end=20000;                             %[a] total timespan of the problem
-stoptime = 50;
-interval=5/128000;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
+stoptime = 10;
+interval=1/128000;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
 % t_res = 1/8760;
 t_length=stoptime/interval;                 %[no unit] number of time layers
 
@@ -24,9 +24,15 @@ rho_sw = gsw_rho(S,T,1); %[kg/m^3] in situ seawater density computed from GSW to
 P=rho_sw.*9.81.*SF_depth/1e5; %[bar] in situ pressure computed from GSW toolbox
 
 %% bottom-water values of dissolved species
-dO2w=(159.7)*1e-6*rho_sw;                                   %[mol/m3] dissolved oxygen
-dtPO4w=(2.39)*1e-6*rho_sw;                                   %[mol/m3] nitrate from GLODAP at sation location, bottom waters
-dtCO2w=(2324)*1e-6*rho_sw;                                   %[mol/m3] nitrate from GLODAP at sation location, bottom waters
+dO2w=(159.7)*1e-6*rho_sw; %[mol/m3] dissolved oxygen from GLODAP at station location, bottom waters
+dtCO2w=(2324)*1e-6*rho_sw; %[mol/m3] DIC from GLODAP at sation location, bottom waters
+dtNO3w=(36.93)*1e-6*rho_sw; %[mol/m3] nitrate from GLODAP at sation location, bottom waters
+dtSO4w=(29264.2*S/35)*1e-6*rho_sw; %[mol/m3] computer from salinity (Millero, 2013)
+dtPO4w=(2.39)*1e-6*rho_sw; %[mol/m3] nitrate from GLODAP at sation location, bottom waters
+dtNH4w=(1)*1e-6*rho_sw; %[mol/m3] typical for deep sea oxic bottom waters (Archer et al., 2002)
+dtH2Sw=(0)*1e-6*rho_sw; %[mol/m3] assumed
+dFew=(2)*1e-6*rho_sw; %[mol/m3] typical for deep sea oxic bottom waters (Archer et al., 2002)
+dMnw=(0)*1e-6*rho_sw; %[mol/m3] typical for deep sea oxic bottom waters (Archer et al., 2002)
 
 %% depth-dependent porosity
 phiBeta = 33;
@@ -51,8 +57,10 @@ Foc=1.000041991200773./10; %[mol/m2/a] flux of total organic carbon to the botto
 Froc=Foc*0.15; %[mol/m2/a] flux of total organic carbon to the bottom 
 Fsoc=Foc*0.15; %[mol/m2/a] flux of total organic carbon to the bottom 
 Ffoc=Foc*0.7; %[mol/m2/a] flux of total organic carbon to the bottom 
+FMnO2=0.0035; %typical for deep sea oxic bottom waters (Archer et al., 2002; Boudreau, 1996)
+FFeOH3=0.0035; %typical for deep sea oxic bottom waters (Archer et al., 2002; Boudreau, 1996)
 
-Ftot=Foc.*M_OM;      %[g/m2/a] total sediment flux 
+Ftot=Foc*M_OM+FMnO2*86.9368+FFeOH3*106.867;      %[g/m2/a] total sediment flux 
 v0=(Ftot)/(2.65e6*phiS(1));                                             %[m/a] bulk burial velocity at sediment-water interface
 vinf=v0*phiS(1)/phiS(1,ndepths);                                    %[m/a]bulk burial velocity at the infinite depth
 for j=1:ndepths
