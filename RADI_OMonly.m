@@ -193,7 +193,7 @@ phiS_j = phiS(j);
 
 %% Begin timestep loop
 % Start with some O2 and OC
-dO2(:) = dO2w*2/3;
+dO2(:) = dO2w;
 dtCO2(:) = dtCO2w;
 dtNO3(:)=dtNO3w;            %[mol/m3]
 dtSO4(:)=dtSO4w;            %[mol/m3]
@@ -508,7 +508,7 @@ for i=i:t_length-1
         D_bio_j.*((proc_jp1 - 2*proc_j + ...
         proc_jm1)./z_res2_j));
 
-        % Slow decay organic carbon
+    % Slow decay organic carbon
     psoc_j = psoc(j);
     psoc_jp1 = psoc(jp1);
     psoc_jm1 = psoc(jm1);
@@ -519,7 +519,7 @@ for i=i:t_length-1
         D_bio_j.*((psoc_jp1 - 2*psoc_j + ...
         psoc_jm1)./z_res2_j));
     
-        % Fast decay organic carbon
+    % Fast decay organic carbon
     pfoc_j = pfoc(j);
     pfoc_jp1 = pfoc(jp1);
     pfoc_jm1 = pfoc(jm1);
@@ -528,7 +528,7 @@ for i=i:t_length-1
         2*sigma_j.*pfoc_j - ...
         (1 + sigma_j).*pfoc_jm1)./(2*z_res_j)) + ...
         D_bio_j.*((pfoc_jp1 - 2*pfoc_j + ...
-        pfoc_jm1)./z_res2_j));    
+        pfoc_jm1)./z_res2_j));
     
             % Iron oxide
     pFeOH3_j = pFeOH3(j);
