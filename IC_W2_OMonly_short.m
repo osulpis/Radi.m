@@ -11,7 +11,7 @@ z_res = ones(size(depths))*z_res; %[m] depth resolution
 
 %% definition of the temporal domain
 % t_end=20000;                             %[a] total timespan of the problem
-stoptime = 50;
+stoptime = 50/128000;
 interval=5/128000;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
 % t_res = 1/8760;
 t_length=stoptime/interval;                 %[no unit] number of time layers
@@ -25,8 +25,8 @@ P=rho_sw.*9.81.*SF_depth/1e5; %[bar] in situ pressure computed from GSW toolbox
 
 %% bottom-water values of dissolved species
 dO2w=(159.7)*1e-6*rho_sw;                                   %[mol/m3] dissolved oxygen
-dtPO4w=(2.39)*1e-6*rho_sw;                                   %[mol/m3] nitrate from GLODAP at sation location, bottom waters
-dtCO2w=(2324)*1e-6*rho_sw;                                   %[mol/m3] nitrate from GLODAP at sation location, bottom waters
+dtPO4w=(2.39)*1e-6*rho_sw;                                   %[mol/m3] phosphate from GLODAP at station location, bottom waters
+dtCO2w=(2324)*1e-6*rho_sw;                                   %[mol/m3] DIC from GLODAP at station location, bottom waters
 
 %% depth-dependent porosity
 phiBeta = 33;
@@ -47,7 +47,7 @@ M_H3PO4=97.994; %[g per mol]
 M_OM=M_CH2O+(RN/RC)*M_NH3+(RP/RC)*M_H3PO4; %[g of OM per mol of OC] Organic Matter molar mass
 
 %% solid fluxes and solid initial conditions
-Foc=1.000041991200773./10; %[mol/m2/a] flux of total organic carbon to the bottom 
+Foc=0.1000041991200773; %[mol/m2/a] flux of total organic carbon to the bottom 
 Froc=Foc*0.15; %[mol/m2/a] flux of total organic carbon to the bottom 
 Fsoc=Foc*0.15; %[mol/m2/a] flux of total organic carbon to the bottom 
 Ffoc=Foc*0.7; %[mol/m2/a] flux of total organic carbon to the bottom 

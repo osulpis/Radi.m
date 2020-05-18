@@ -73,8 +73,8 @@ kfast=kfast_0*exp(-depths./lambda_fast);    %[/a] from Archer et al (2002)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if rerun == 0 %concentrations set to zero for solids, bottom water values for not-too-sensitive solutes
-    dO2(1,1:ndepths)=0;            
-    dtCO2(1,1:ndepths)=0;            
+    dO2(1,1:ndepths)=dO2w;            
+    dtCO2(1,1:ndepths)=dtCO2w;            
     proc(1,1:ndepths)=0;
     psoc(1,1:ndepths)=0;             
     pfoc(1,1:ndepths)=0;             
@@ -141,7 +141,7 @@ phiS_j = phiS(j);
 
 %% Begin timestep loop
 % Start with some O2 and OC
-dO2(:) = dO2w*2/3;
+dO2(:) = dO2w;
 dtCO2(:) = dtCO2w;
 proc(:) = 3e4;
 psoc(:) = 3e3;
@@ -259,7 +259,7 @@ for i=i:t_length-1
         D_bio_j.*((proc_jp1 - 2*proc_j + ...
         proc_jm1)./z_res2_j));
 
-        % Slow decay organic carbon
+    % Slow decay organic carbon
     psoc_j = psoc(j);
     psoc_jp1 = psoc(jp1);
     psoc_jm1 = psoc(jm1);
@@ -270,7 +270,7 @@ for i=i:t_length-1
         D_bio_j.*((psoc_jp1 - 2*psoc_j + ...
         psoc_jm1)./z_res2_j));
     
-        % Fast decay organic carbon
+    % Fast decay organic carbon
     pfoc_j = pfoc(j);
     pfoc_jp1 = pfoc(jp1);
     pfoc_jm1 = pfoc(jm1);
@@ -279,7 +279,7 @@ for i=i:t_length-1
         2*sigma_j.*pfoc_j - ...
         (1 + sigma_j).*pfoc_jm1)./(2*z_res_j)) + ...
         D_bio_j.*((pfoc_jp1 - 2*pfoc_j + ...
-        pfoc_jm1)./z_res2_j));    
+        pfoc_jm1)./z_res2_j));
     
     %% Set top and bottom conditions in arrays
     % Doing this here means that the correct values are used in calculating
