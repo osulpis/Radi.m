@@ -205,8 +205,8 @@ dMn(:)=dMnw;            %[mol/m3]
 proc(:) = 3e4;
 psoc(:) = 3e3;
 pfoc(:) = 3e2;
-pFeOH3(:)= 3e1;
-pMnO2(:) = 3e1;
+pFeOH3(:)= 0;
+pMnO2(:) = 0;
 
 % Preallocate saving arrays
 dO2f = NaN(ndepths, t_length);
@@ -265,14 +265,14 @@ for i=i:t_length-1
     %% Calculate all reactions (14 species, units: [mol/m3/a])
     % This section ~2x faster by not putting all the reactions into a
     % single matrix but keeping as separate vectors // MPH
-    TotR_dO2 = - phiS./phi.*(Rs_o2 + Rf_o2) - 0.25.*RFeox - 0.5.*RMnox - 2.*RFeox - 2.*RMnox;
+    TotR_dO2 = - phiS./phi.*(Rs_o2 + Rf_o2) - 0.25.*RFeox - 0.5.*RMnox - 2.*RSox - 2.*RMnox;
     TotR_dtCO2 = phiS./phi.*(Rs_o2 + Rf_o2 + Rs_no3 + Rf_no3 + Rs_mno2 + Rf_mno2 + Rs_feoh3 + Rf_feoh3...
         + Rs_so4 + Rf_so4 + Rs_ch4.*0.5 + Rf_ch4.*0.5);
     TotR_dtNO3 = - phiS./phi.*0.8.*(Rs_no3 + Rf_no3) + RNHox; 
     TotR_dtSO4 = - phiS./phi.*0.5.*(Rs_so4 + Rf_so4) + RSox; 
     TotR_dtPO4 = phiS./phi.*(RP./RC).*(Rs_tot + Rf_tot);
     TotR_dtNH4 = phiS./phi.*(RN./RC).*(Rs_tot + Rf_tot) - RNHox;
-    TotR_dtH2S = phiS./phi.*(Rs_so4 + Rf_so4) - RSox;    
+    TotR_dtH2S = phiS./phi.*0.5.*(Rs_so4 + Rf_so4) - RSox;    
     TotR_dFe = phiS./phi.*4.*(Rs_feoh3 + Rf_feoh3) - RFeox;
     TotR_dMn = phiS./phi.*2.*(Rs_mno2 + Rf_mno2) - RMnox;
     TotR_psoc = - Rs_tot;
@@ -601,21 +601,41 @@ for i=i:t_length-1
     pFeOH3(pFeOH3<0)=0;
     pMnO2(pMnO2<0)=0;
     
+    
     %% save data every step
-    dO2f(:, i+1) = dO2;
-    dtCO2f(:, i+1) = dtCO2; 
-    dtNO3f(:, i+1) = dtNO3;
-    dtSO4f(:, i+1) = dtSO4;
-    dtPO4f(:, i+1) = dtPO4;
-    dtNH4f(:, i+1) = dtNH4;
-    dtH2Sf(:, i+1) = dtH2S;
-    dFef(:, i+1) = dFe; 
-    dMnf(:, i+1) = dMn;
-    procf(:, i+1) = proc;
-    psocf(:, i+1) = psoc;
-    pfocf(:, i+1) = pfoc; 
-    pFeOH3f(:, i+1) = pFeOH3;
-    pMnO2f(:, i+1) = pMnO2; 
+    %dO2f(:, i+1) = dO2;
+    %dtCO2f(:, i+1) = dtCO2; 
+    %dtNO3f(:, i+1) = dtNO3;
+    %dtSO4f(:, i+1) = dtSO4;
+    %dtPO4f(:, i+1) = dtPO4;
+    %dtNH4f(:, i+1) = dtNH4;
+    %dtH2Sf(:, i+1) = dtH2S;
+    %dFef(:, i+1) = dFe; 
+   % dMnf(:, i+1) = dMn;
+    %procf(:, i+1) = proc;
+    %psocf(:, i+1) = psoc;
+    %pfocf(:, i+1) = pfoc; 
+    %pFeOH3f(:, i+1) = pFeOH3;
+    %pMnO2f(:, i+1) = pMnO2; 
+    
+        if i == plot_number(idx)
+        disp(plot_number(idx)*interval)
+        dO2f(:, idx) = dO2;
+        dtCO2f(:, idx) = dtCO2; 
+        dtNO3f(:, idx) = dtNO3;
+        dtSO4f(:, idx) = dtSO4;
+        dtPO4f(:, idx) = dtPO4;
+        dtNH4f(:, idx) = dtNH4;
+        dtH2Sf(:, idx) = dtH2S;
+        dFef(:, idx) = dFe; 
+        dMnf(:, idx) = dMn;
+        procf(:, idx) = proc;
+        psocf(:, idx) = psoc;
+        pfocf(:, idx) = pfoc; 
+        pFeOH3f(:, idx) = pFeOH3;
+        pMnO2f(:, idx) = pMnO2; 
+       idx=idx+1;
+      end  
     
 end
 
