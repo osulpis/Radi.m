@@ -209,20 +209,34 @@ pFeOH3(:)= 0;
 pMnO2(:) = 0;
 
 % Preallocate saving arrays
-dO2f = NaN(ndepths, t_length);
-dtCO2f = NaN(ndepths, t_length);
-dtNO3f = NaN(ndepths, t_length);
-dtSO4f = NaN(ndepths, t_length);
-dtPO4f = NaN(ndepths, t_length);
-dtNH4f = NaN(ndepths, t_length);
-dtH2Sf = NaN(ndepths, t_length);
-dFef = NaN(ndepths, t_length);
-dMnf = NaN(ndepths, t_length);
-procf = NaN(ndepths, t_length);
-psocf = NaN(ndepths, t_length);
-pfocf = NaN(ndepths, t_length);
-pFeOH3f = NaN(ndepths, t_length);
-pMnO2f = NaN(ndepths, t_length);
+%dO2f = NaN(ndepths, t_length);
+%dtCO2f = NaN(ndepths, t_length);
+%dtNO3f = NaN(ndepths, t_length);
+%dtSO4f = NaN(ndepths, t_length);
+%dtPO4f = NaN(ndepths, t_length);
+%dtNH4f = NaN(ndepths, t_length);
+%dtH2Sf = NaN(ndepths, t_length);
+%dFef = NaN(ndepths, t_length);
+%dMnf = NaN(ndepths, t_length);
+%procf = NaN(ndepths, t_length);
+%psocf = NaN(ndepths, t_length);
+%pfocf = NaN(ndepths, t_length);
+%pFeOH3f = NaN(ndepths, t_length);
+%pMnO2f = NaN(ndepths, t_length);
+dO2f = NaN(ndepths, stoptime+1);
+dtCO2f = NaN(ndepths, stoptime+1);
+dtNO3f = NaN(ndepths, stoptime+1);
+dtSO4f = NaN(ndepths, stoptime+1);
+dtPO4f = NaN(ndepths, stoptime+1);
+dtNH4f = NaN(ndepths, stoptime+1);
+dtH2Sf = NaN(ndepths, stoptime+1);
+dFef = NaN(ndepths, stoptime+1);
+dMnf = NaN(ndepths, stoptime+1);
+procf = NaN(ndepths, stoptime+1);
+psocf = NaN(ndepths, stoptime+1);
+pfocf = NaN(ndepths, stoptime+1);
+pFeOH3f = NaN(ndepths, stoptime+1);
+pMnO2f = NaN(ndepths, stoptime+1);
 
 for i=i:t_length-1
 
@@ -265,7 +279,7 @@ for i=i:t_length-1
     %% Calculate all reactions (14 species, units: [mol/m3/a])
     % This section ~2x faster by not putting all the reactions into a
     % single matrix but keeping as separate vectors // MPH
-    TotR_dO2 = - phiS./phi.*(Rs_o2 + Rf_o2) - 0.25.*RFeox - 0.5.*RMnox - 2.*RSox - 2.*RMnox;
+    TotR_dO2 = - phiS./phi.*(Rs_o2 + Rf_o2) - 0.25.*RFeox - 0.5.*RMnox - 2.*RSox - 2.*RNHox;
     TotR_dtCO2 = phiS./phi.*(Rs_o2 + Rf_o2 + Rs_no3 + Rf_no3 + Rs_mno2 + Rf_mno2 + Rs_feoh3 + Rf_feoh3...
         + Rs_so4 + Rf_so4 + Rs_ch4.*0.5 + Rf_ch4.*0.5);
     TotR_dtNO3 = - phiS./phi.*0.8.*(Rs_no3 + Rf_no3) + RNHox; 
@@ -345,11 +359,13 @@ for i=i:t_length-1
  
     pFeOH3_1 = pFeOH3(1) + interval * (D_bio(1) * ( 2 * pFeOH3(2) - 2 * pFeOH3(1) +... %diffusion
         2 * z_res(1) * (FFeOH3 - phiS(1) * w(1) * pFeOH3(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (FFeOH3 - phiS(1) * w(1) * pFeOH3(1)) / (D_bio(1) * phiS(1))); %advection
-    
+        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (FFeOH3 - phiS(1) * w(1) * pFeOH3(1)) / (D_bio(1) * phiS(1))... %advection
+        +TotR_pFeOH3(1)); %reaction
+
     pMnO2_1 = pMnO2(1) + interval * (D_bio(1) * ( 2 * pMnO2(2) - 2 * pMnO2(1) +... %diffusion
         2 * z_res(1) * (FMnO2 - phiS(1) * w(1) * pMnO2(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (FMnO2 - phiS(1) * w(1) * pMnO2(1)) / (D_bio(1) * phiS(1))); %advection
+        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (FMnO2 - phiS(1) * w(1) * pMnO2(1)) / (D_bio(1) * phiS(1))... %advection
+        +TotR_pMnO2(1)); %reaction
     
     %% bottom boundary condition: gradients disappear
     % Calculate here, but don't set in arrays yet, otherwise calculations
@@ -611,33 +627,32 @@ for i=i:t_length-1
     %dtNH4f(:, i+1) = dtNH4;
     %dtH2Sf(:, i+1) = dtH2S;
     %dFef(:, i+1) = dFe; 
-   % dMnf(:, i+1) = dMn;
+    %dMnf(:, i+1) = dMn;
     %procf(:, i+1) = proc;
     %psocf(:, i+1) = psoc;
     %pfocf(:, i+1) = pfoc; 
     %pFeOH3f(:, i+1) = pFeOH3;
     %pMnO2f(:, i+1) = pMnO2; 
     
-        if i == plot_number(idx)
+     if i == plot_number(idx)
         disp(plot_number(idx)*interval)
         dO2f(:, idx) = dO2;
         dtCO2f(:, idx) = dtCO2; 
-        dtNO3f(:, idx) = dtNO3;
-        dtSO4f(:, idx) = dtSO4;
-        dtPO4f(:, idx) = dtPO4;
-        dtNH4f(:, idx) = dtNH4;
-        dtH2Sf(:, idx) = dtH2S;
-        dFef(:, idx) = dFe; 
+      dtNO3f(:, idx) = dtNO3;
+      dtSO4f(:, idx) = dtSO4;
+       dtPO4f(:, idx) = dtPO4;
+       dtNH4f(:, idx) = dtNH4;
+       dtH2Sf(:, idx) = dtH2S;
+       dFef(:, idx) = dFe; 
         dMnf(:, idx) = dMn;
-        procf(:, idx) = proc;
-        psocf(:, idx) = psoc;
-        pfocf(:, idx) = pfoc; 
-        pFeOH3f(:, idx) = pFeOH3;
-        pMnO2f(:, idx) = pMnO2; 
-       idx=idx+1;
-      end  
-    
-end
+       procf(:, idx) = proc;
+       psocf(:, idx) = psoc;
+       pfocf(:, idx) = pfoc; 
+       pFeOH3f(:, idx) = pFeOH3;
+       pMnO2f(:, idx) = pMnO2; 
+      idx=idx+1;
+     end  
+    end
 
 tEnd = toc(tStart);
 fprintf('%d minutes and %f seconds\n', floor(tEnd/60), rem(tEnd,60));
