@@ -343,30 +343,35 @@ for i=i:t_length-1
         + alpha(1) * ( dMnw - dMn(1) ) ... %irrigation
         + TotR_dMn(1)); %reaction
     
-    proc_1 = proc(1) + interval * (D_bio(1) * ( 2 * proc(2) - 2 * proc(1) +... %diffusion
+    proc_1 = proc(1) + interval * ( D_bio(1) * ( 2 * proc(2) - 2 * proc(1) +... %diffusion
         2 * z_res(1) * (Froc - phiS(1) * w(1) * proc(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (Froc - phiS(1) * w(1) * proc(1)) / (D_bio(1) * phiS(1))); %advection
-
-    psoc_1 = psoc(1) + interval * (D_bio(1) * ( 2 * psoc(2) - 2 * psoc(1) +... %diffusion
+        - APPW(1) * ((1 - sigma(1))*proc(2) + 2*sigma(1)*proc(1) - ... %advection
+        (1 + sigma(1))*(proc(2)+2*z_res(1)/D_bio(1)*(Froc/phiS(1)-w(1)*proc(1))))/(2*z_res(1))); ... %advection
+            
+    psoc_1 = psoc(1) + interval * ( D_bio(1) * ( 2 * psoc(2) - 2 * psoc(1) +... %diffusion
         2 * z_res(1) * (Fsoc - phiS(1) * w(1) * psoc(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (Fsoc - phiS(1) * w(1) * psoc(1)) / (D_bio(1) * phiS(1))... %advection
+        - APPW(1) * ((1 - sigma(1))*psoc(2) + 2*sigma(1)*psoc(1) - ... %advection
+        (1 + sigma(1))*(psoc(2)+2*z_res(1)/D_bio(1)*(Fsoc/phiS(1)-w(1)*psoc(1))))/(2*z_res(1)) ... %advection
         +TotR_psoc(1)); %reaction
-
-    pfoc_1 = pfoc(1) + interval * (D_bio(1) * ( 2 * pfoc(2) - 2 * pfoc(1) +... %diffusion
+    
+    pfoc_1 = pfoc(1) + interval * ( D_bio(1) * ( 2 * pfoc(2) - 2 * pfoc(1) +... %diffusion
         2 * z_res(1) * (Ffoc - phiS(1) * w(1) * pfoc(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (Ffoc - phiS(1) * w(1) * pfoc(1)) / (D_bio(1) * phiS(1))... %advection
-        +TotR_pfoc(1)); %reaction        
- 
-    pFeOH3_1 = pFeOH3(1) + interval * (D_bio(1) * ( 2 * pFeOH3(2) - 2 * pFeOH3(1) +... %diffusion
+        - APPW(1) * ((1 - sigma(1))*pfoc(2) + 2*sigma(1)*pfoc(1) - ... %advection
+        (1 + sigma(1))*(pfoc(2)+2*z_res(1)/D_bio(1)*(Ffoc/phiS(1)-w(1)*pfoc(1))))/(2*z_res(1)) ... %advection
+        +TotR_pfoc(1)); %reaction
+    
+     pFeOH3_1 = pFeOH3(1) + interval * ( D_bio(1) * ( 2 * pFeOH3(2) - 2 * pFeOH3(1) +... %diffusion
         2 * z_res(1) * (FFeOH3 - phiS(1) * w(1) * pFeOH3(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (FFeOH3 - phiS(1) * w(1) * pFeOH3(1)) / (D_bio(1) * phiS(1))... %advection
+        - APPW(1) * ((1 - sigma(1))*pFeOH3(2) + 2*sigma(1)*pFeOH3(1) - ... %advection
+        (1 + sigma(1))*(pFeOH3(2)+2*z_res(1)/D_bio(1)*(FFeOH3/phiS(1)-w(1)*pFeOH3(1))))/(2*z_res(1)) ... %advection
         +TotR_pFeOH3(1)); %reaction
 
-    pMnO2_1 = pMnO2(1) + interval * (D_bio(1) * ( 2 * pMnO2(2) - 2 * pMnO2(1) +... %diffusion
+    pMnO2_1 = pMnO2(1) + interval * ( D_bio(1) * ( 2 * pMnO2(2) - 2 * pMnO2(1) +... %diffusion
         2 * z_res(1) * (FMnO2 - phiS(1) * w(1) * pMnO2(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (FMnO2 - phiS(1) * w(1) * pMnO2(1)) / (D_bio(1) * phiS(1))... %advection
+        - APPW(1) * ((1 - sigma(1))*pMnO2(2) + 2*sigma(1)*pMnO2(1) - ... %advection
+        (1 + sigma(1))*(pMnO2(2)+2*z_res(1)/D_bio(1)*(FMnO2/phiS(1)-w(1)*pMnO2(1))))/(2*z_res(1)) ... %advection
         +TotR_pMnO2(1)); %reaction
-    
+ 
     %% bottom boundary condition: gradients disappear
     % Calculate here, but don't set in arrays yet, otherwise calculations
     % at other depths use values from the wrong timestep // MPH [v20]
