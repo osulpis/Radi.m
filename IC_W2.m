@@ -11,7 +11,7 @@ z_res = ones(size(depths))*z_res; %[m] depth resolution
 
 %% definition of the temporal domain
 % t_end=20000;                             %[a] total timespan of the problem
-stoptime = 100;
+stoptime = 50;
 interval=1/128000;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
 % t_res = 1/8760;
 t_length=stoptime/interval;                 %[no unit] number of time layers
@@ -25,6 +25,7 @@ P=rho_sw.*9.81.*SF_depth/1e5; %[bar] in situ pressure computed from GSW toolbox
 
 %% bottom-water values of dissolved species
 dO2w=(159.7)*1e-6*rho_sw; %[mol/m3] dissolved oxygen from GLODAP at station location, bottom waters
+dtalkw=(2426)*1e-6*rho_sw; %[mol/m3] dissolved oxygen from GLODAP at station location, bottom waters
 dtCO2w=(2324)*1e-6*rho_sw; %[mol/m3] DIC from GLODAP at sation location, bottom waters
 dtNO3w=(36.93)*1e-6*rho_sw; %[mol/m3] nitrate from GLODAP at sation location, bottom waters
 dtSO4w=(29264.2*S/35)*1e-6*rho_sw; %[mol/m3] computer from salinity (Millero, 2013)
@@ -33,6 +34,8 @@ dtNH4w=(1)*1e-6*rho_sw; %[mol/m3] typical for deep sea oxic bottom waters (Arche
 dtH2Sw=(0)*1e-6*rho_sw; %[mol/m3] assumed
 dFew=(2)*1e-6*rho_sw; %[mol/m3] typical for deep sea oxic bottom waters (Archer et al., 2002)
 dMnw=(0)*1e-6*rho_sw; %[mol/m3] typical for deep sea oxic bottom waters (Archer et al., 2002)
+dSiw=(120)*1e-6*rho_sw;                                         %[mol/m3] dissolved inorganic silica
+dCaw=0.02133./40.087.*(S./1.80655)*rho_sw;    %[mol/m3] Ca, computed from salinity using Riley CG(1967)
 
 %% depth-dependent porosity
 phiBeta = 33;

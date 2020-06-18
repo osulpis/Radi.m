@@ -24,8 +24,35 @@ tStart = tic;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% Parameters%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% carbonate system initialization this is used only at the first time step to initialize the calc_pco2 program
+CO2SYS_data = CO2SYS(dtalkw*1e6/rho_sw,dtCO2w*1e6/rho_sw,1,2,S,T,T,P*10,P*10,dSiw*1e6/rho_sw,dtPO4w*1e6/rho_sw,1,10,1);
+k1(1,1:ndepths) = CO2SYS_data(1,67);           %carbonic acid first dissociation constant
+k2(1,1:ndepths) = CO2SYS_data(1,68);           %carbonic acid second dissociation constant
+k1p(1,1:ndepths) = CO2SYS_data(1,75);         %phosphate constant 1
+k2p(1,1:ndepths) = CO2SYS_data(1,76);         %phosphate constant 2
+k3p(1,1:ndepths) = CO2SYS_data(1,77);         %phosphate constant 3
+kb(1,1:ndepths) = CO2SYS_data(1,72);            %boron constant 
+kw(1,1:ndepths) = CO2SYS_data(1,71);           %water dissociation constants
+ksi(1,1:ndepths) = CO2SYS_data(1,78);           %silica constants
+bt(1,1:ndepths) = CO2SYS_data(1,79);             %[umol/kg] total boron 
+omegaC = CO2SYS_data(1,30);                         %calcite saturation state
+omegaA = CO2SYS_data(1,31);                          %aragonite saturation state
+co3 = CO2SYS_data(1,22) .* 10^-6;                   %[mol/kg] CO3 
+hco3 = CO2SYS_data(1,21) .* 10^-6;                 %[mol/kg] HCO3
+ph = CO2SYS_data(1,37) ;                                   %pH on the total scale
+Ca_ini = dCaw ./ rho_sw;                                 %[mol/kg] Ca concentration 
+fg(1,1:ndepths)=dtalkw./rho_sw-hco3-2*co3; %sum of all alkalinity species that are not carbon
+kspc = (co3 .* Ca_ini) ./ omegaC;                %[mol2/kg2] calcite in situ solubility
+kspa = (co3 .* Ca_ini) ./ omegaA;                %[mol2/kg2] aragonite in situ solubility
+ff(1,1:ndepths) = 1;                                        %random parameter needed for calc_pco2
+H(1,1:ndepths) = 10^-ph;                             %[mol/kg] H concentration first guess
+clear co3 hco3 ph omegaC omegaA Ca_ini CO2SYS_data   
+sit = 120 * 10^-6;                                              %[mol/kg] convert silica concentration
+bt = bt .* 10^-6;                                                %[mol/kg] convert boron concentration
+
 %% temperature dependent "free solution" diffusion coefficients
 D_dO2=0.034862+0.001409*T; %[m2/a] oxygen diffusion coefficient from Li and Gregory
+D_dtalk=0.015169+0.000793*T;         %[m2/a] approximted to bicarbonate diffusion coefficient from Hulse et al (2018)
 D_dtCO2=0.015169+0.000793*T;         %[m2/a] approximted to bicarbonate diffusion coefficient from Hulse et al (2018)
 D_dtNO3=0.030842+0.001226*T;        %[m2/a] nitrate diffusion coefficient from Li and Gregory (1974)
 D_dtSO4=0.015768+0.000788*T;        %[m2/a] sulfate diffusion coefficient from Li and Gregory (1974)
@@ -34,6 +61,7 @@ D_dtNH4=0.030905+0.001226*T;        %[m2/a] ammonium diffusion coefficient from 
 D_dtH2S=0.030748+0.000964*T;        %[m2/a] hydrogen sulfide diffusion coefficient from the UNISENSE table by Ramsing and Gundersen
 D_dMn=0.0086+0.001525*T;           %[m2/a] manganese diffusion coefficient from Li and Gregory (1974)
 D_dFe=0.0108+0.001478*T;           %[m2/a] iron diffusion coefficient from Li and Gregory (1974)
+D_dCa=0.0107+0.001677*T;         %[m2/a] calcium diffusion coefficient from Li and Gregory (1974)
 
 %% bioturbation (for solids)
 D_bio_0=1e-4*0.0232*(Foc*1e2)^0.85; %[m2/a] surf bioturb coeff, Archer et al (2002)
@@ -96,7 +124,8 @@ kSox=3e5; %[mol/m3/a] rate constant for the deep-sea from Boudreau (1996)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if rerun == 0 %concentrations set to zero for solids, bottom water values for not-too-sensitive solutes
-    dO2(1,1:ndepths)=0;            
+    dO2(1,1:ndepths)=0;        
+    dtalk(1,1:ndepths)=0;            
     dtCO2(1,1:ndepths)=0;            
     dtNO3(1,1:ndepths)=0;      
     dtSO4(1,1:ndepths)=0;      
@@ -110,6 +139,7 @@ if rerun == 0 %concentrations set to zero for solids, bottom water values for no
     pfoc(1,1:ndepths)=0;        
     pFeOH3(1,1:ndepths)=0;    
     pMnO2(1,1:ndepths)=0;    
+    dCa(1,1:ndepths)=0;            
     
     % variable saving
     i=1;
@@ -119,6 +149,7 @@ if rerun == 0 %concentrations set to zero for solids, bottom water values for no
     
 elseif rerun==1 %if it is a rerun, initial conditions are concentrations from last time step
     dO2=dO2f(idx-1,:);            %[mol/m3]
+    dtalk=dtalkf(idx-1,:);            %[mol/m3]
     dtCO2=dtCO2f(idx-1,:);      %[mol/m3]
     dtNO3=dtNO3f(idx-1,:);            %[mol/m3]
     dtSO4=dtSO4f(idx-1,:);            %[mol/m3]
@@ -132,13 +163,15 @@ elseif rerun==1 %if it is a rerun, initial conditions are concentrations from la
     pfoc=pfoc(idx-1,:);                %[mol/m3]
     pFeOH3=pFeOH3f(idx-1,:);                %[mol/m3]
     pMnO2=pMnO2f(idx-1,:);                %[mol/m3]
-    
+    dCa=dCaf(idx-1,:);            %[mol/m3]
+
     plot_number=0:t_length/stoptime:t_length;  %we will only keep the variables every year
     i=plot_number(idx-1);
     
 else
     % initial condition for solutes: bottom-water value
     dO2=dO2ic;                %[mol/m3]
+    dtalk=dtalkic;                %[mol/m3]
     dtCO2=dtCO2ic;                %[mol/m3]
     dtNO3=dtNO3ic;            %[mol/m3]
     dtSO4=dtSO4ic;            %[mol/m3]
@@ -147,6 +180,7 @@ else
     dtH2S=dtH2Sic;            %[mol/m3]
     dFe=dFeic;            %[mol/m3]
     dMn=dMnic;            %[mol/m3]
+    dCa=dCaic;            %[mol/m3]
     proc=procic;
     psoc=psocic;
     pfoc=pfocic;
@@ -194,6 +228,7 @@ phiS_j = phiS(j);
 %% Begin timestep loop
 % Start with some O2 and OC
 dO2(:) = dO2w;
+dtalk(:) = dtalkw;
 dtCO2(:) = dtCO2w;
 dtNO3(:)=dtNO3w;            %[mol/m3]
 dtSO4(:)=dtSO4w;            %[mol/m3]
@@ -202,6 +237,7 @@ dtNH4(:)=dtNH4w;            %[mol/m3]
 dtH2S(:)=dtH2Sw;            %[mol/m3]
 dFe(:)=dFew;            %[mol/m3]
 dMn(:)=dMnw;            %[mol/m3]
+dCa(:)=dCaw;
 proc(:) = 3e4;
 psoc(:) = 3e3;
 pfoc(:) = 3e2;
@@ -210,6 +246,7 @@ pMnO2(:) = 0;
 
 % Preallocate saving arrays
 %dO2f = NaN(ndepths, t_length);
+%dtalkf = NaN(ndepths, t_length);
 %dtCO2f = NaN(ndepths, t_length);
 %dtNO3f = NaN(ndepths, t_length);
 %dtSO4f = NaN(ndepths, t_length);
@@ -218,12 +255,14 @@ pMnO2(:) = 0;
 %dtH2Sf = NaN(ndepths, t_length);
 %dFef = NaN(ndepths, t_length);
 %dMnf = NaN(ndepths, t_length);
+%dCaf = NaN(ndepths, t_length);
 %procf = NaN(ndepths, t_length);
 %psocf = NaN(ndepths, t_length);
 %pfocf = NaN(ndepths, t_length);
 %pFeOH3f = NaN(ndepths, t_length);
 %pMnO2f = NaN(ndepths, t_length);
 dO2f = NaN(ndepths, stoptime+1);
+dtalkf = NaN(ndepths, stoptime+1);
 dtCO2f = NaN(ndepths, stoptime+1);
 dtNO3f = NaN(ndepths, stoptime+1);
 dtSO4f = NaN(ndepths, stoptime+1);
@@ -232,6 +271,7 @@ dtNH4f = NaN(ndepths, stoptime+1);
 dtH2Sf = NaN(ndepths, stoptime+1);
 dFef = NaN(ndepths, stoptime+1);
 dMnf = NaN(ndepths, stoptime+1);
+dCaf = NaN(ndepths, stoptime+1);
 procf = NaN(ndepths, stoptime+1);
 psocf = NaN(ndepths, stoptime+1);
 pfocf = NaN(ndepths, stoptime+1);
@@ -276,10 +316,29 @@ for i=i:t_length-1
     RSox = kSox.*dtH2S.*dO2; % oxidation of hydrogen sulfide
     RNHox = kNHox.*dtNH4.*dO2; % oxidation of ammonia
     
+    %% calc_pco2: time efficient carbonate system solver    
+    DIC_molPerKg = dtCO2 ./ rho_sw;     %convert DIC to [mol/kg]
+    TA_molPerKg = dtalk ./ rho_sw;         %convert TA to [mol/kg]
+    PO4_molPerKg = dtPO4 ./ rho_sw;   %convert PO4 to [mol/kg]
+    
+    [H] = calc_pCO2(DIC_molPerKg,PO4_molPerKg,sit,bt,TA_molPerKg,ff,k1,k2,k1p,k2p,k3p,kb,kw,ksi,fg,H);    %[mol/kg] H concentration
+    
+    co3_molPerKg = (DIC_molPerKg .* k1 .* k2)./ (H.^2 + (k1 .* H) + (k1 .* k2)); %[mol/kg] CO3 concentration
+    co3 = co3_molPerKg .* rho_sw; %[mol m^-3] CO3 concentraiton
+    
+    %% CaCO3 reactions
+    OmegaC = dCa.*co3./ (kspc.* rho_sw.^2); %[no unit] calcite saturation state
+    OmegaA = dCa.*co3./ (kspa.* rho_sw.^2); %[no unit] aragonite saturation state
+    
     %% Calculate all reactions (14 species, units: [mol/m3/a])
     % This section ~2x faster by not putting all the reactions into a
     % single matrix but keeping as separate vectors // MPH
     TotR_dO2 = - phiS./phi.*(Rs_o2 + Rf_o2) - 0.25.*RFeox - 0.5.*RMnox - 2.*RSox - 2.*RNHox;
+    TotR_dtalk = + phiS./ phi.*(Rs_o2.*(RN./RC - RP./RC) + Rf_o2.*(RN./RC - RP./RC) + Rs_no3.*(0.8+RN./RC - RP./RC)...
+        + Rf_no3.*(0.8+RN./RC - RP./RC) + Rs_mno2.*(4+RN./RC - RP./RC) + Rf_mno2.*(4+RN./RC - RP./RC)...
+        + Rs_feoh3.*(8+RN./RC - RP./RC) + Rf_feoh3.*(0.8+RN./RC - RP./RC) + Rs_so4.*(1+RN./RC - RP./RC)...
+        + Rf_so4.*(1+RN./RC - RP./RC) + Rs_ch4.*(RN./RC - RP./RC) + Rf_ch4.*(RN./RC - RP./RC)) - 2.* RFeox...
+            - 2.* RMnox - 2.* RSox - 2.* RNHox;
     TotR_dtCO2 = phiS./phi.*(Rs_o2 + Rf_o2 + Rs_no3 + Rf_no3 + Rs_mno2 + Rf_mno2 + Rs_feoh3 + Rf_feoh3...
         + Rs_so4 + Rf_so4 + Rs_ch4.*0.5 + Rf_ch4.*0.5);
     TotR_dtNO3 = - phiS./phi.*0.8.*(Rs_no3 + Rf_no3) + RNHox; 
@@ -302,6 +361,11 @@ for i=i:t_length-1
         - (u(1) - D_dO2.*DFF(1)) * -1 * TR(1) * ( dO2w - dO2(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * ( dO2w - dO2(1) ) ... %irrigation
         + TotR_dO2(1)); %reaction
+    
+     dtalk_1 = dtalk(1) + interval * ( D_dtalk / tort2(1) * (2*dtalk(2) - 2*dtalk(1) + TR(1) * (dtalkw - dtalk(1))) / (z_res(1)^2) ... %diffusion
+        - (u(1) - D_dtalk.*DFF(1)) * -1 * TR(1) * ( dtalkw - dtalk(1)) / (2*z_res(1)) ... %advection
+        + alpha(1) * ( dtalkw - dtalk(1) ) ... %irrigation
+        + TotR_dtalk(1)); %reaction
     
     dtCO2_1 = dtCO2(1) + interval * ( D_dtCO2 / tort2(1) * (2*dtCO2(2) - 2*dtCO2(1) + TR(1) * (dtCO2w - dtCO2(1))) / (z_res(1)^2) ... %diffusion
         - (u(1) - D_dtCO2.*DFF(1)) * -1 * TR(1) * ( dtCO2w - dtCO2(1)) / (2*z_res(1)) ... %advection
@@ -342,6 +406,11 @@ for i=i:t_length-1
         - (u(1) - D_dMn.*DFF(1)) * -1 * TR(1) * ( dMnw - dMn(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * ( dMnw - dMn(1) ) ... %irrigation
         + TotR_dMn(1)); %reaction
+
+    dCa_1 = dCa(1) + interval * ( D_dCa / tort2(1) * (2*dCa(2) - 2*dCa(1) + TR(1) * (dCaw - dCa(1))) / (z_res(1)^2) ... %diffusion
+        - (u(1) - D_dCa.*DFF(1)) * -1 * TR(1) * ( dCaw - dCa(1)) / (2*z_res(1)) ... %advection
+        + alpha(1) * ( dCaw - dCa(1) ) ... %irrigation
+        + 0); %reaction
     
     proc_1 = proc(1) + interval * ( D_bio(1) * ( 2 * proc(2) - 2 * proc(1) +... %diffusion
         2 * z_res(1) * (Froc - phiS(1) * w(1) * proc(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
@@ -379,6 +448,10 @@ for i=i:t_length-1
         + alpha(ndepths) * (dO2w - dO2(ndepths)) ... %irrigation
         +TotR_dO2(ndepths));
 
+    dtalk_z = dtalk(ndepths) + interval * (D_dtalk / tort2(ndepths) * 2 * ((dtalk(ndepths-1) - dtalk(ndepths)) / z_res(ndepths).^2) ...  %diffusion
+        + alpha(ndepths) * (dtalkw - dtalk(ndepths)) ... %irrigation
+        +TotR_dtalk(ndepths));
+    
     dtCO2_z = dtCO2(ndepths) + interval * (D_dtCO2 / tort2(ndepths) * 2 * ((dtCO2(ndepths-1) - dtCO2(ndepths)) / z_res(ndepths).^2) ...  %diffusion
         + alpha(ndepths) * (dtCO2w - dtCO2(ndepths)) ... %irrigation
         +TotR_dtCO2(ndepths));
@@ -410,7 +483,11 @@ for i=i:t_length-1
     dMn_z = dMn(ndepths) + interval * (D_dMn / tort2(ndepths) * 2 * ((dMn(ndepths-1) - dMn(ndepths)) / z_res(ndepths).^2) ...  %diffusion
         + alpha(ndepths) * (dMnw - dMn(ndepths)) ... %irrigation
         +TotR_dMn(ndepths));
-    
+
+    dCa_z = dCa(ndepths) + interval * (D_dCa / tort2(ndepths) * 2 * ((dCa(ndepths-1) - dCa(ndepths)) / z_res(ndepths).^2) ...  %diffusion
+        + alpha(ndepths) * (dCaw - dCa(ndepths)) ... %irrigation
+        +0);
+
     proc_z = proc(ndepths) + interval * (D_bio(ndepths) * 2 * ( (proc(ndepths-1) - proc(ndepths)) / z_res(ndepths).^2)... %diffusion
         - APPW(ndepths) * (-sigma(ndepths)*proc(ndepths-1) + sigma(ndepths)*proc(ndepths))/z_res(ndepths)); %advection
     
@@ -445,6 +522,15 @@ for i=i:t_length-1
         (u_j - D_dO2*DFF_j).*(dO2_jp1 - dO2_jm1)./(2*z_res_j) + ...
         (D_dO2./tort2_j).*((dO2_jp1 - 2*dO2_j + dO2_jm1)./z_res2_j) + ...
         alpha_j.*(dO2w - dO2_j));
+    
+    % Total alkalinity
+    dtalk_j = dtalk(j);
+    dtalk_jp1 = dtalk(jp1);
+    dtalk_jm1 = dtalk(jm1);
+    dtalk(j) = dtalk_j + interval*(TotR_dtalk(j) - ...
+        (u_j - D_dtalk*DFF_j).*(dtalk_jp1 - dtalk_jm1)./(2*z_res_j) + ...
+        (D_dtalk./tort2_j).*((dtalk_jp1 - 2*dtalk_j + dtalk_jm1)./z_res2_j) + ...
+        alpha_j.*(dtalkw - dtalk_j));
 
     % Dissolved inorganic carbon
     dtCO2_j = dtCO2(j);
@@ -518,6 +604,15 @@ for i=i:t_length-1
         (D_dMn./tort2_j).*((dMn_jp1 - 2*dMn_j + dMn_jm1)./z_res2_j) + ...
         alpha_j.*(dMnw - dMn_j));
     
+    % Dissolved calcium
+    dCa_j = dCa(j);
+    dCa_jp1 = dCa(jp1);
+    dCa_jm1 = dCa(jm1);
+    dCa(j) = dCa_j + interval*( - ...
+        (u_j - D_dCa*DFF_j).*(dCa_jp1 - dCa_jm1)./(2*z_res_j) + ...
+        (D_dCa./tort2_j).*((dCa_jp1 - 2*dCa_j + dCa_jm1)./z_res2_j) + ...
+        alpha_j.*(dCaw - dCa_j));
+    
     % Refractory organic carbon
     proc_j = proc(j);
     proc_jp1 = proc(jp1);
@@ -577,6 +672,7 @@ for i=i:t_length-1
     % Doing this here means that the correct values are used in calculating
     % diffusion and advection at all other depths // MPH [v20]
     dO2(1) = dO2_1;
+    dtalk(1) = dtalk_1; 
     dtCO2(1) = dtCO2_1; 
     dtNO3(1) = dtNO3_1;
     dtSO4(1) = dtSO4_1;
@@ -585,6 +681,7 @@ for i=i:t_length-1
     dtH2S(1) = dtH2S_1;
     dFe(1) = dFe_1; 
     dMn(1) = dMn_1;
+    dCa(1) = dCa_1;
     proc(1) = proc_1;
     psoc(1) = psoc_1;
     pfoc(1) = pfoc_1; 
@@ -592,6 +689,7 @@ for i=i:t_length-1
     pMnO2(1) = pMnO2_1; 
     
     dO2(ndepths) = dO2_z;
+    dtalk(ndepths) = dtalk_z; 
     dtCO2(ndepths) = dtCO2_z; 
     dtNO3(ndepths) = dtNO3_z;
     dtSO4(ndepths) = dtSO4_z;
@@ -599,6 +697,7 @@ for i=i:t_length-1
     dtNH4(ndepths) = dtNH4_z;
     dtH2S(ndepths) = dtH2S_z;
     dFe(ndepths) = dFe_z; 
+    dCa(ndepths) = dCa_z;
     dMn(ndepths) = dMn_z;
     proc(ndepths) = proc_z;
     psoc(ndepths) = psoc_z;
@@ -608,6 +707,7 @@ for i=i:t_length-1
     
     %% set very small or negative concentration to zero
     dO2(dO2<0)=0;
+    dtalk(dtalk<0)=0;
     dtCO2(dtCO2<0)=0;
     dtNO3(dtNO3<0)=0;
     dtSO4(dtSO4<0)=0; 
@@ -616,15 +716,16 @@ for i=i:t_length-1
     dtH2S(dtH2S<0)=0; 
     dFe(dFe<0)=0; 
     dMn(dMn<0)=0;    
+    dCa(dCa<0)=0;
     proc(proc<0)=0;
     psoc(psoc<0)=0;
     pfoc(pfoc<0)=0;
     pFeOH3(pFeOH3<0)=0;
-    pMnO2(pMnO2<0)=0;
-    
+    pMnO2(pMnO2<0)=0;    
     
     %% save data every step
     %dO2f(:, i+1) = dO2;
+    %dtalkf(:, i+1) = dtalk;
     %dtCO2f(:, i+1) = dtCO2; 
     %dtNO3f(:, i+1) = dtNO3;
     %dtSO4f(:, i+1) = dtSO4;
@@ -633,6 +734,7 @@ for i=i:t_length-1
     %dtH2Sf(:, i+1) = dtH2S;
     %dFef(:, i+1) = dFe; 
     %dMnf(:, i+1) = dMn;
+    %dCaf(:, i+1) = dCa;
     %procf(:, i+1) = proc;
     %psocf(:, i+1) = psoc;
     %pfocf(:, i+1) = pfoc; 
@@ -640,16 +742,18 @@ for i=i:t_length-1
     %pMnO2f(:, i+1) = pMnO2; 
     
      if i == plot_number(idx)
-        disp(plot_number(idx)*interval)
-        dO2f(:, idx) = dO2;
-        dtCO2f(:, idx) = dtCO2; 
-      dtNO3f(:, idx) = dtNO3;
-      dtSO4f(:, idx) = dtSO4;
+       disp(plot_number(idx)*interval)
+       dO2f(:, idx) = dO2;
+       dtalkf(:, idx) = dtalk;
+       dtCO2f(:, idx) = dtCO2; 
+       dtNO3f(:, idx) = dtNO3;
+       dtSO4f(:, idx) = dtSO4;
        dtPO4f(:, idx) = dtPO4;
        dtNH4f(:, idx) = dtNH4;
        dtH2Sf(:, idx) = dtH2S;
        dFef(:, idx) = dFe; 
-        dMnf(:, idx) = dMn;
+       dMnf(:, idx) = dMn;
+       dCaf(:, idx) = dCa;
        procf(:, idx) = proc;
        psocf(:, idx) = psoc;
        pfocf(:, idx) = pfoc; 
