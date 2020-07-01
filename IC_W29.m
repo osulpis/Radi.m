@@ -11,7 +11,7 @@ z_res=ones(1,z_length).*z_res;     %[m] depth resolution
 
 %% definition of the temporal domain
 % t_end=20000;                             %[a] total timespan of the problem
-t_end = 2;
+t_end = 5;
 t_res=1/64000;                          %[a] time resolution (1/60000 is nine minutes, 1/8760 is one hour; 1/365.2 is a day)
 % t_res = 1/8760;
 t_length=t_end/t_res;                 %[no unit] number of time layers
@@ -26,7 +26,7 @@ P=rho_sw.*9.81.*SF_depth/1e5; %[bar] in situ pressure computed from GSW toolbox
 %% bottom-water values of dissolved species
 TAw=(2426)*1e-6*rho_sw;                                    %[mol/m3] total alkalinity
 DICw=(2324.3)*1e-6*rho_sw;                               %[mol/m3] dissolved inorganic carbon
-Caw=0.02133./40.087.*(S./1.80655)*rho_sw;    %[mol/m3] Ca, computed from salinity using Riley CG(1967)
+Caw=0.02128./40.087.*(S./1.80655)*rho_sw;    %[mol/m3] Ca, computed from salinity using Riley CG(1967)
 O2w=(159.7)*1e-6*rho_sw;                                   %[mol/m3] dissolved oxygen
 NO3w=(36.93)*1e-6*rho_sw;                                %[mol/m3] nitrate from GLODAP at sation location, bottom waters
 SO4w=((0.029264*S)/35)*rho_sw;                       %[mol/m3] sulfate, computed from S using ratios in table 2.3 of Millero(2013)
