@@ -62,8 +62,11 @@ Fsoc=Foc*0.15; %[mol/m2/a] flux of total organic carbon to the bottom
 Ffoc=Foc*0.7; %[mol/m2/a] flux of total organic carbon to the bottom 
 FMnO2=0.0035; %typical for deep sea oxic bottom waters (Archer et al., 2002; Boudreau, 1996)
 FFeOH3=0.0035; %typical for deep sea oxic bottom waters (Archer et al., 2002; Boudreau, 1996)
+Fcalcite=0.1; %[mol/m2/a] flux of calcite to the seafloor 
+Faragonite=0.1; %[mol/m2/a] flux of aragonite to the seafloor
+Fclay=2/360.31; %[mol/m2/a] flux of clay to the bottom: 360.31 is the molar mass of montmorillonite, typical deep sea clay
 
-Ftot=Foc*M_OM+FMnO2*86.9368+FFeOH3*106.867;      %[g/m2/a] total sediment flux 
+Ftot=Foc*M_OM+FMnO2*86.9368+FFeOH3*106.867+Fcalcite*100.0869+Faragonite*100.0869+Fclay*360.31; %[g/m2/a] total sediment flux 
 v0=(Ftot)/(2.65e6*phiS(1));                                             %[m/a] bulk burial velocity at sediment-water interface
 vinf=v0*phiS(1)/phiS(1,ndepths);                                    %[m/a]bulk burial velocity at the infinite depth
 for j=1:ndepths

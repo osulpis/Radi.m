@@ -139,7 +139,10 @@ if rerun == 0 %concentrations set to zero for solids, bottom water values for no
     pfoc(1,1:ndepths)=0;        
     pFeOH3(1,1:ndepths)=0;    
     pMnO2(1,1:ndepths)=0;    
-    dCa(1,1:ndepths)=0;            
+    dCa(1,1:ndepths)=0;  
+    pcalcite(1,1:ndepths)=0;
+    paragonite(1,1:ndepths)=0;
+    pclay(1,1:ndepths)=0;
     
     % variable saving
     i=1;
@@ -164,6 +167,9 @@ elseif rerun==1 %if it is a rerun, initial conditions are concentrations from la
     pFeOH3=pFeOH3f(idx-1,:);                %[mol/m3]
     pMnO2=pMnO2f(idx-1,:);                %[mol/m3]
     dCa=dCaf(idx-1,:);            %[mol/m3]
+    pcalcite=pcalcitef(idx-1,:);            %[mol/m3]
+    paragonite=paragonitef(idx-1,:);            %[mol/m3]
+    pclay=pclayf(idx-1,:);            %[mol/m3]
 
     plot_number=0:t_length/stoptime:t_length;  %we will only keep the variables every year
     i=plot_number(idx-1);
@@ -186,6 +192,9 @@ else
     pfoc=pfocic;
     pFeOH3=pFeOH3ic;
     pMnO2=pMnO2icic;
+    pcalcite=pcalciteic;
+    paragonite=paragoniteic;
+    pclay=plcayic;
     
     % variable saving
     i=1;
@@ -243,6 +252,9 @@ psoc(:) = 3e3;
 pfoc(:) = 3e2;
 pFeOH3(:)= 0;
 pMnO2(:) = 0;
+pcalcite(:) = 1e3;
+paragonite(:) = 1e3;
+pclay(:) = 0;
 
 % Preallocate saving arrays
 %dO2f = NaN(ndepths, t_length);
@@ -261,6 +273,9 @@ pMnO2(:) = 0;
 %pfocf = NaN(ndepths, t_length);
 %pFeOH3f = NaN(ndepths, t_length);
 %pMnO2f = NaN(ndepths, t_length);
+%pcalcitef = NaN(ndepths, t_length);
+%paragonitef = NaN(ndepths, t_length);
+%pclayf = NaN(ndepths, t_length);
 dO2f = NaN(ndepths, stoptime+1);
 dtalkf = NaN(ndepths, stoptime+1);
 dtCO2f = NaN(ndepths, stoptime+1);
@@ -277,6 +292,9 @@ psocf = NaN(ndepths, stoptime+1);
 pfocf = NaN(ndepths, stoptime+1);
 pFeOH3f = NaN(ndepths, stoptime+1);
 pMnO2f = NaN(ndepths, stoptime+1);
+pcalcitef = NaN(ndepths, stoptime+1);
+paragonitef = NaN(ndepths, stoptime+1);
+pclayf = NaN(ndepths, stoptime+1);
 
 for i=i:t_length-1
 
@@ -330,17 +348,49 @@ for i=i:t_length-1
     OmegaC = dCa.*co3./ (kspc.* rho_sw.^2); %[no unit] calcite saturation state
     OmegaA = dCa.*co3./ (kspa.* rho_sw.^2); %[no unit] aragonite saturation state
     
+   % Aragonite dissolution rate from Dong et al. (2019) EPSL
+       for jj=1:ndepths
+          if OmegaA(1,jj)<=1 && OmegaA(1,jj)>0.835 %this is the omega value for which both laws are equals
+          Rd_aragonite(1,jj)=paragonite(1,jj).*200*7.6e-5*((1-OmegaA(1,jj)).^0.13);
+          elseif OmegaA(1,jj)<=0.835 %this is the omega value for which both laws are equals
+          Rd_aragonite(1,jj)=paragonite(1,jj).*200*8.4e-4*((1-OmegaA(1,jj)).^1.46);    
+          else            
+          Rd_aragonite(1,jj)=0;    
+          end
+       end
+        
+    %Calcite dissolution from Naviaux et al. (2019) Marine Chemistry
+    for jj=1:ndepths
+          if OmegaC(1,jj)<=1 && OmegaC(1,jj)>0.8275 %this is the omega value for which both laws are equals
+          Rd_calcite(1,jj)=pcalcite(1,jj).*400*6.32e-5*((1-OmegaC(1,jj)).^0.11);
+          elseif OmegaC(1,jj)<=0.8275 %this is the omega value for which both laws are equals
+          Rd_calcite(1,jj)=pcalcite(1,jj).*400*0.2*((1-OmegaC(1,jj)).^4.7);    
+          else            
+          Rd_calcite(1,jj)=0;    
+          end
+    end
+
+    %Calcite precipitation rate from Zuddas and Mucci, GCA (1998)
+    %normalized to the same surface area than for dissolution (4m2/g)
+    for jj=1:ndepths
+         if OmegaC(1,jj)>1
+         Rp_calcite(1,jj)=1.63*((OmegaC(1,jj)-1).^1.76);
+         else 
+         Rp_calcite(1,jj)=0;
+         end
+    end
+    
     %% Calculate all reactions (14 species, units: [mol/m3/a])
     % This section ~2x faster by not putting all the reactions into a
     % single matrix but keeping as separate vectors // MPH
     TotR_dO2 = - phiS./phi.*(Rs_o2 + Rf_o2) - 0.25.*RFeox - 0.5.*RMnox - 2.*RSox - 2.*RNHox;
     TotR_dtalk = + phiS./ phi.*(Rs_o2.*(RN./RC - RP./RC) + Rf_o2.*(RN./RC - RP./RC) + Rs_no3.*(0.8+RN./RC - RP./RC)...
         + Rf_no3.*(0.8+RN./RC - RP./RC) + Rs_mno2.*(4+RN./RC - RP./RC) + Rf_mno2.*(4+RN./RC - RP./RC)...
-        + Rs_feoh3.*(8+RN./RC - RP./RC) + Rf_feoh3.*(0.8+RN./RC - RP./RC) + Rs_so4.*(1+RN./RC - RP./RC)...
-        + Rf_so4.*(1+RN./RC - RP./RC) + Rs_ch4.*(RN./RC - RP./RC) + Rf_ch4.*(RN./RC - RP./RC)) - 2.* RFeox...
-            - 2.* RMnox - 2.* RSox - 2.* RNHox;
+        + Rs_feoh3.*(8+RN./RC - RP./RC) + Rf_feoh3.*(8+RN./RC - RP./RC) + Rs_so4.*(1+RN./RC - RP./RC)...
+        + Rf_so4.*(1+RN./RC - RP./RC) + Rs_ch4.*(RN./RC - RP./RC) + Rf_ch4.*(RN./RC - RP./RC) + 2.* (Rd_calcite...
+        + Rd_aragonite - Rp_calcite)) - 2.* RFeox - 2.* RMnox - 2.* RSox - 2.* RNHox;
     TotR_dtCO2 = phiS./phi.*(Rs_o2 + Rf_o2 + Rs_no3 + Rf_no3 + Rs_mno2 + Rf_mno2 + Rs_feoh3 + Rf_feoh3...
-        + Rs_so4 + Rf_so4 + Rs_ch4.*0.5 + Rf_ch4.*0.5);
+        + Rs_so4 + Rf_so4 + Rs_ch4.*0.5 + Rf_ch4.*0.5 + (Rd_calcite + Rd_aragonite - Rp_calcite));
     TotR_dtNO3 = - phiS./phi.*0.8.*(Rs_no3 + Rf_no3) + RNHox; 
     TotR_dtSO4 = - phiS./phi.*0.5.*(Rs_so4 + Rf_so4) + RSox; 
     TotR_dtPO4 = phiS./phi.*(RP./RC).*(Rs_tot + Rf_tot);
@@ -348,10 +398,13 @@ for i=i:t_length-1
     TotR_dtH2S = phiS./phi.*0.5.*(Rs_so4 + Rf_so4) - RSox;    
     TotR_dFe = phiS./phi.*4.*(Rs_feoh3 + Rf_feoh3) - RFeox;
     TotR_dMn = phiS./phi.*2.*(Rs_mno2 + Rf_mno2) - RMnox;
+    TotR_dCa = phiS./ phi.* (Rd_calcite + Rd_aragonite - Rp_calcite); 
     TotR_psoc = - Rs_tot;
     TotR_pfoc = - Rf_tot;
     TotR_pFeOH3 = - 4.*(Rs_feoh3 + Rf_feoh3) + phi./phiS.*RFeox;
     TotR_pMnO2 = - 2.*(Rs_mno2 + Rf_mno2) + phi./phiS.*RMnox;
+    TotR_pcalcite = -Rd_calcite + Rp_calcite; 
+    TotR_paragonite = -Rd_aragonite;
     
     %% top boundary condition: prescribed solid fluxes and diffusive boundary layer control on solutes
     % Calculate here, but don't set in arrays yet, otherwise calculations
@@ -410,7 +463,7 @@ for i=i:t_length-1
     dCa_1 = dCa(1) + interval * ( D_dCa / tort2(1) * (2*dCa(2) - 2*dCa(1) + TR(1) * (dCaw - dCa(1))) / (z_res(1)^2) ... %diffusion
         - (u(1) - D_dCa.*DFF(1)) * -1 * TR(1) * ( dCaw - dCa(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * ( dCaw - dCa(1) ) ... %irrigation
-        + 0); %reaction
+        + TotR_dCa(1)); %reaction
     
     proc_1 = proc(1) + interval * ( D_bio(1) * ( 2 * proc(2) - 2 * proc(1) +... %diffusion
         2 * z_res(1) * (Froc - phiS(1) * w(1) * proc(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
@@ -441,6 +494,23 @@ for i=i:t_length-1
         (1 + sigma(1))*(pMnO2(2)+2*z_res(1)/D_bio(1)*(FMnO2/phiS(1)-w(1)*pMnO2(1))))/(2*z_res(1)) ... %advection
         +TotR_pMnO2(1)); %reaction
  
+    pcalcite_1 = pcalcite(1) + interval * ( D_bio(1) * ( 2 * pcalcite(2) - 2 * pcalcite(1) +... %diffusion
+        2 * z_res(1) * (Fcalcite - phiS(1) * w(1) * pcalcite(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
+        - APPW(1) * ((1 - sigma(1))*pcalcite(2) + 2*sigma(1)*pcalcite(1) - ... %advection
+        (1 + sigma(1))*(pcalcite(2)+2*z_res(1)/D_bio(1)*(Fcalcite/phiS(1)-w(1)*pcalcite(1))))/(2*z_res(1)) ... %advection
+        +TotR_pcalcite(1)); %reaction
+
+    paragonite_1 = paragonite(1) + interval * ( D_bio(1) * ( 2 * paragonite(2) - 2 * paragonite(1) +... %diffusion
+        2 * z_res(1) * (Faragonite - phiS(1) * w(1) * paragonite(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
+        - APPW(1) * ((1 - sigma(1))*paragonite(2) + 2*sigma(1)*paragonite(1) - ... %advection
+        (1 + sigma(1))*(paragonite(2)+2*z_res(1)/D_bio(1)*(Faragonite/phiS(1)-w(1)*paragonite(1))))/(2*z_res(1)) ... %advection
+        +TotR_paragonite(1)); %reaction
+
+    pclay_1 = pclay(1) + interval * ( D_bio(1) * ( 2 * pclay(2) - 2 * pclay(1) +... %diffusion
+        2 * z_res(1) * (Fclay - phiS(1) * w(1) * pclay(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
+        - APPW(1) * ((1 - sigma(1))*pclay(2) + 2*sigma(1)*pclay(1) - ... %advection
+        (1 + sigma(1))*(pclay(2)+2*z_res(1)/D_bio(1)*(Fclay/phiS(1)-w(1)*pclay(1))))/(2*z_res(1))); %advection
+    
     %% bottom boundary condition: gradients disappear
     % Calculate here, but don't set in arrays yet, otherwise calculations
     % at other depths use values from the wrong timestep // MPH [v20]
@@ -486,7 +556,7 @@ for i=i:t_length-1
 
     dCa_z = dCa(ndepths) + interval * (D_dCa / tort2(ndepths) * 2 * ((dCa(ndepths-1) - dCa(ndepths)) / z_res(ndepths).^2) ...  %diffusion
         + alpha(ndepths) * (dCaw - dCa(ndepths)) ... %irrigation
-        +0);
+        +TotR_dCa(ndepths));
 
     proc_z = proc(ndepths) + interval * (D_bio(ndepths) * 2 * ( (proc(ndepths-1) - proc(ndepths)) / z_res(ndepths).^2)... %diffusion
         - APPW(ndepths) * (-sigma(ndepths)*proc(ndepths-1) + sigma(ndepths)*proc(ndepths))/z_res(ndepths)); %advection
@@ -507,6 +577,16 @@ for i=i:t_length-1
         - APPW(ndepths) * (-sigma(ndepths)*pMnO2(ndepths-1) + sigma(ndepths)*pMnO2(ndepths))/z_res(ndepths)... %advection
         +TotR_pMnO2(ndepths));
     
+    pcalcite_z = pcalcite(ndepths) + interval * (D_bio(ndepths) * 2 * ( (pcalcite(ndepths-1) - pcalcite(ndepths)) / z_res(ndepths).^2)... %diffusion
+        - APPW(ndepths) * (-sigma(ndepths)*pcalcite(ndepths-1) + sigma(ndepths)*pcalcite(ndepths))/z_res(ndepths)... %advection
+        +TotR_pcalcite(ndepths));
+
+    paragonite_z = paragonite(ndepths) + interval * (D_bio(ndepths) * 2 * ( (paragonite(ndepths-1) - paragonite(ndepths)) / z_res(ndepths).^2)... %diffusion
+        - APPW(ndepths) * (-sigma(ndepths)*paragonite(ndepths-1) + sigma(ndepths)*paragonite(ndepths))/z_res(ndepths)... %advection
+        +TotR_paragonite(ndepths));
+    
+    pclay_z = pclay(ndepths) + interval * (D_bio(ndepths) * 2 * ( (pclay(ndepths-1) - pclay(ndepths)) / z_res(ndepths).^2)... %diffusion
+        - APPW(ndepths) * (-sigma(ndepths)*pclay(ndepths-1) + sigma(ndepths)*pclay(ndepths))/z_res(ndepths)); %advection
     
     %% all other depths
     % ndepths=100 seems to be the sweet spot where loop and logical
@@ -608,7 +688,7 @@ for i=i:t_length-1
     dCa_j = dCa(j);
     dCa_jp1 = dCa(jp1);
     dCa_jm1 = dCa(jm1);
-    dCa(j) = dCa_j + interval*( - ...
+    dCa(j) = dCa_j + interval*(TotR_dCa(j) - ...
         (u_j - D_dCa*DFF_j).*(dCa_jp1 - dCa_jm1)./(2*z_res_j) + ...
         (D_dCa./tort2_j).*((dCa_jp1 - 2*dCa_j + dCa_jm1)./z_res2_j) + ...
         alpha_j.*(dCaw - dCa_j));
@@ -668,6 +748,39 @@ for i=i:t_length-1
         D_bio_j.*((pMnO2_jp1 - 2*pMnO2_j + ...
         pMnO2_jm1)./z_res2_j));    
     
+                % Calcite
+    pcalcite_j = pcalcite(j);
+    pcalcite_jp1 = pcalcite(jp1);
+    pcalcite_jm1 = pcalcite(jm1);
+    pcalcite(j) = pcalcite_j + interval*(TotR_pcalcite(j) - ...
+        APPW_j.*(((1 - sigma_j).*pcalcite_jp1 + ...
+        2*sigma_j.*pcalcite_j - ...
+        (1 + sigma_j).*pcalcite_jm1)./(2*z_res_j)) + ...
+        D_bio_j.*((pcalcite_jp1 - 2*pcalcite_j + ...
+        pcalcite_jm1)./z_res2_j));    
+    
+                % Aragonite
+    paragonite_j = paragonite(j);
+    paragonite_jp1 = paragonite(jp1);
+    paragonite_jm1 = paragonite(jm1);
+    paragonite(j) = paragonite_j + interval*(TotR_paragonite(j) - ...
+        APPW_j.*(((1 - sigma_j).*paragonite_jp1 + ...
+        2*sigma_j.*paragonite_j - ...
+        (1 + sigma_j).*paragonite_jm1)./(2*z_res_j)) + ...
+        D_bio_j.*((paragonite_jp1 - 2*paragonite_j + ...
+        paragonite_jm1)./z_res2_j));    
+    
+                % Clay
+    pclay_j = pclay(j);
+    pclay_jp1 = pclay(jp1);
+    pclay_jm1 = pclay(jm1);
+    pclay(j) = pclay_j + interval*( - ...
+        APPW_j.*(((1 - sigma_j).*pclay_jp1 + ...
+        2*sigma_j.*pclay_j - ...
+        (1 + sigma_j).*pclay_jm1)./(2*z_res_j)) + ...
+        D_bio_j.*((pclay_jp1 - 2*pclay_j + ...
+        pclay_jm1)./z_res2_j));    
+    
     %% Set top and bottom conditions in arrays
     % Doing this here means that the correct values are used in calculating
     % diffusion and advection at all other depths // MPH [v20]
@@ -687,7 +800,9 @@ for i=i:t_length-1
     pfoc(1) = pfoc_1; 
     pFeOH3(1) = pFeOH3_1;
     pMnO2(1) = pMnO2_1; 
-    
+    pcalcite(1) = pcalcite_1;
+    paragonite(1) = paragonite_1;
+    pclay(1) = pclay_1;
     dO2(ndepths) = dO2_z;
     dtalk(ndepths) = dtalk_z; 
     dtCO2(ndepths) = dtCO2_z; 
@@ -704,6 +819,9 @@ for i=i:t_length-1
     pfoc(ndepths) = pfoc_z; 
     pFeOH3(ndepths) = pFeOH3_z;
     pMnO2(ndepths) = pMnO2_z; 
+    pcalcite(ndepths) = pcalcite_z;
+    paragonite(ndepths) = paragonite_z;
+    pclay(ndepths) = pclay_z;
     
     %% set very small or negative concentration to zero
     dO2(dO2<0)=0;
@@ -722,6 +840,9 @@ for i=i:t_length-1
     pfoc(pfoc<0)=0;
     pFeOH3(pFeOH3<0)=0;
     pMnO2(pMnO2<0)=0;    
+    pcalcite(pcalcite<0)=0;    
+    paragonite(paragonite<0)=0;    
+    pclay(pclay<0)=0;    
     
     %% save data every step
     %dO2f(:, i+1) = dO2;
@@ -740,6 +861,9 @@ for i=i:t_length-1
     %pfocf(:, i+1) = pfoc; 
     %pFeOH3f(:, i+1) = pFeOH3;
     %pMnO2f(:, i+1) = pMnO2; 
+    %pcalcitef(:, i+1) = pcalcite; 
+    %paragonitef(:, i+1) = paragonite; 
+    %pclayf(:, i+1) = pclay; 
     
      if i == plot_number(idx)
        disp(plot_number(idx)*interval)
@@ -759,9 +883,12 @@ for i=i:t_length-1
        pfocf(:, idx) = pfoc; 
        pFeOH3f(:, idx) = pFeOH3;
        pMnO2f(:, idx) = pMnO2; 
+       pcalcitef(:, idx) = pcalcite; 
+       paragonitef(:, idx) = paragonite; 
+       pclayf(:, idx) = pclay; 
       idx=idx+1;
      end  
-    end
+end
 
 tEnd = toc(tStart);
 fprintf('%d minutes and %f seconds\n', floor(tEnd/60), rem(tEnd,60));
