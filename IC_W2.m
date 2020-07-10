@@ -1,6 +1,7 @@
 %Station W2
 %Hammon et al 1996 Deep-Sea Research
 Station= "Hammond1996 - W2";
+addpath('C:\Github\Porewaters\GSW');
 
 %% definition of the spatial domain with two different resolutions
 z_max=20e-2;                               %[m] bottom sediment depth, should be a multiple of z_res
@@ -17,11 +18,13 @@ interval=1/128000;                          %[a] time resolution (1/60000 is nin
 t_length=stoptime/interval;                 %[no unit] number of time layers
 
 %% bottom-water environmental conditions
+latitude=0;
 T=1.4;                   %[C] temperature
 SF_depth=4310; %[m] seafloor depth
 S=34.69;              %[psu] salinity
-rho_sw = gsw_rho(S,T,1); %[kg/m^3] in situ seawater density computed from GSW toolbox
-P=rho_sw.*9.81.*SF_depth/1e5; %[bar] in situ pressure computed from GSW toolbox
+P=gsw_p_from_z(-SF_depth,latitude); %[dbar] in situ pressure computed from GSW toolbox
+rho_sw = gsw_rho(S,T,P); %[kg/m^3] in situ seawater density computed from GSW toolbox
+
 
 %% bottom-water values of dissolved species
 dO2w=(159.7)*1e-6*rho_sw; %[mol/m3] dissolved oxygen from GLODAP at station location, bottom waters

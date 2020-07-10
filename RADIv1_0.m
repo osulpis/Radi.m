@@ -25,7 +25,7 @@ tStart = tic;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% carbonate system initialization this is used only at the first time step to initialize the calc_pco2 program
-CO2SYS_data = CO2SYS(dtalkw*1e6/rho_sw,dtCO2w*1e6/rho_sw,1,2,S,T,T,P*10,P*10,dSiw*1e6/rho_sw,dtPO4w*1e6/rho_sw,1,10,1);
+CO2SYS_data = CO2SYS(dtalkw*1e6/rho_sw,dtCO2w*1e6/rho_sw,1,2,S,T,T,P,P,dSiw*1e6/rho_sw,dtPO4w*1e6/rho_sw,1,10,1);
 k1(1,1:ndepths) = CO2SYS_data(1,67);           %carbonic acid first dissociation constant
 k2(1,1:ndepths) = CO2SYS_data(1,68);           %carbonic acid second dissociation constant
 k1p(1,1:ndepths) = CO2SYS_data(1,75);         %phosphate constant 1
@@ -339,7 +339,34 @@ for i=i:t_length-1
     TA_molPerKg = dtalk ./ rho_sw;         %convert TA to [mol/kg]
     PO4_molPerKg = dtPO4 ./ rho_sw;   %convert PO4 to [mol/kg]
     
-    [H] = calc_pCO2(DIC_molPerKg,PO4_molPerKg,sit,bt,TA_molPerKg,ff,k1,k2,k1p,k2p,k3p,kb,kw,ksi,fg,H);    %[mol/kg] H concentration
+    %======================================================================
+    % Extract from calc_pCO2.m - runs ~3x faster here than in a separate
+    % function // MPH [v20]
+    %
+    % Original comments:
+    %
+    %calc_pCO2()
+    %Example FORTRAN subroutine: solve carbonate system for pC02
+    %M. Follows, T. Ito, S. Dutkiewicz
+    %D. Carroll, 2019
+    hg = H;
+    bohg = bt.*kb./(hg + kb);
+    siooh3g = sit.*ksi./(ksi + hg);
+    denom = hg.*hg.*hg + k1p.*hg.*hg + k1p.*k2p.*hg + k1p.*k2p.*k3p;
+    h3po4g = PO4_molPerKg.*hg.*hg.*hg./denom;
+    hpo4g = PO4_molPerKg.*k1p.*k2p.*hg./denom;
+    po4g = PO4_molPerKg.*k1p.*k2p.*k3p./denom;
+
+    %estimate carbonate alkalinity
+    fg = (-bohg - (kw./hg)) + hg - hpo4g - 2*po4g + h3po4g - siooh3g;
+    cag = TA_molPerKg + fg;
+
+    %improved estimate of hydrogen ion conc
+    gamm = DIC_molPerKg./cag;
+    dummy = (1-gamm).*(1-gamm).*k1.*k1 - 4*k1.*k2.*(1 - 2*gamm);
+    H = 0.5*((gamm-1).*k1 + sqrt(dummy)); %[mol/kg] H concentration
+    % end calc_pCO2.m extract // MPH [v20]
+    %======================================================================
     
     co3_molPerKg = (DIC_molPerKg .* k1 .* k2)./ (H.^2 + (k1 .* H) + (k1 .* k2)); %[mol/kg] CO3 concentration
     co3 = co3_molPerKg .* rho_sw; %[mol m^-3] CO3 concentraiton
