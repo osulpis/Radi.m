@@ -25,22 +25,30 @@ tStart = tic;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% temperature dependent "free solution" diffusion coefficients
-D_O2=0.034862+0.001409*T;           %[m2/a] oxygen diffusion coefficient from Li and Gregiry
+D_O2=0.034862+0.001409*T; %[m2/a] oxygen diffusion coefficient from Li and Gregiry
 
 %% bioturbation (for solids)
-D_bio_0=1e-4*0.0232*(Foc*1e2)^0.85;                                              %[m2/a] surf bioturb coeff, Archer et al (2002)
-D_bio=D_bio_0*exp(-(z./0.08).^2).*((O2w/1e-3)/((O2w/1e-3)+20)); %[m2/a] bioturb coeff, Archer et al (2002)
+D_bio_0=1e-4*0.0232*(Foc*1e2)^0.85; %[m2/a] surf bioturb coeff, Archer et al (2002)
+lambda_b = 0.08;
+D_bio=D_bio_0*exp(-(z./lambda_b).^2).*((O2w/1e-3)/((O2w/1e-3)+20)); %[m2/a] bioturb coeff, Archer et al (2002)
 
 %% irrigation (for solutes)
-alpha_0=11*(atan((5*Foc*1e2-400)/400)/3.1416+0.5)-0.9...
+alpha_0=11*(atan((5*Foc*1e2-400)/400)/pi+0.5)-0.9...
     +20*((O2w/1e-3)/((O2w/1e-3)+10))*exp(-(O2w/1e-3)/10)*Foc*1e2/(Foc*1e2+30);    %[/a] from Archer et al (2002)
 alpha=alpha_0.*exp(-(z/0.05).^2);                                                                                   %[/a] Archer et al (2002) the depth of 5 cm was changed
 
 %% depth-dependent porosity and diffusion coefficient loss
-delta_phi = [0 diff(phi)]; % depth-dependent porosity loss
-delta_phiS = [0 diff(phiS)]; % depth-dependent solid fraction gain
-delta_tort2 = [0 diff(tort.^2)]; % depth-dependent tortuosity gain
-delta_D_bio = [0 diff(D_bio)]; % [m/a]
+% % Use differences - values should then be divided by z_res?
+% delta_phi = [0 diff(phi)]; % depth-dependent porosity loss
+% delta_phiS = [0 diff(phiS)]; % depth-dependent solid fraction gain
+% delta_tort2 = [0 diff(tort.^2)]; % depth-dependent tortuosity gain
+% delta_D_bio_i = [0 diff(D_bio)]; % [m/a]
+% Use derivative equations instead! all checked vs finite differences
+delta_phi = -phiBeta.*(phi0 - phiInf).*exp(-phiBeta*z);
+% delta_phi(1) = 0; % don't do this
+delta_phiS = -delta_phi;
+delta_tort2 = -2*delta_phi./phi; % not used in Julia
+delta_D_bio = -2*z.*D_bio/lambda_b^2; % not used in Julia
 
 % biodiffusion depth-attenuation: see Boudreau (1996); Fiadeiro and Veronis (1977)
 Peh=w.*z_res./(2*D_bio);      %one half the cell Peclet number (Eq. 97 in Boudreau 1996)
@@ -48,7 +56,6 @@ Peh=w.*z_res./(2*D_bio);      %one half the cell Peclet number (Eq. 97 in Boudre
 sigma=1./tanh(Peh)-1./(Peh);  %Eq. 96 in Boudreau 1996
 
 %% organic matter degradation parameters
- 
 krefractory=80.25*D_bio_0*exp(-z./1);         %[/a] from Archer et al (2002)
 
 %%
@@ -114,8 +121,20 @@ phiS_j = phiS(j);
 % Dtort2_TA = D_TA./tort2_j;
 
 %% Begin timestep loop
+% Start with some O2 and OC
+O2(:) = O2w*2/3;
+OC(:) = 1e4;
+
+% Preallocate saving arrays
+O2f = NaN(z_length, t_length);
+OCf = NaN(z_length, t_length);
+O2f(:, 1) = O2;
+OCf(:, 1) = OC;
+
 for i=i:t_length-1
 
+%     disp(i)
+    
     %F_O2i=D_O2*phi(1)*(O2(:,1)-O2w)./5e-3;
     %F_DICi=D_DIC*phi(1)*(DIC(:,1)-DICw)./5e-3;
     %F_TAi=D_TA*phi(1)*(TA(:,1)-TAw)./5e-3;
@@ -132,15 +151,57 @@ for i=i:t_length-1
     %% top boundary condition: prescribed solid fluxes and diffusive boundary layer control on solutes
     % Calculate here, but don't set in arrays yet, otherwise calculations
     % at other depths use values from the wrong timestep // MPH [v20]
+    
+    %delete// OS
+    %O2_1 = O2(1) + t_res * ( D_O2 / tort2(1) * (2*O2(2) - 2*O2(1) + TR(1) * (O2w - O2(1))) / (z_res(1)^2) ... %diffusion
+    %    - u(1) * -1 * TR(1) * ( O2w - O2(1)) / (2*z_res(1)) ... %advection
+    %   + alpha(1) * ( O2w - O2(1) ) ... %irrigation
+    %   + TotR_O2(1)); %reaction
+    
+    %implement nonzero delta_phi at the interface // OS
     O2_1 = O2(1) + t_res * ( D_O2 / tort2(1) * (2*O2(2) - 2*O2(1) + TR(1) * (O2w - O2(1))) / (z_res(1)^2) ... %diffusion
-        - u(1) * -1 * TR(1) * ( O2w - O2(1)) / (2*z_res(1)) ... %advection
+        - (u(1) - D_O2.*DFF(1)) * -1 * TR(1) * ( O2w - O2(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * ( O2w - O2(1) ) ... %irrigation
         + TotR_O2(1)); %reaction
+    
+    %delete//OS
+    %OC_1 = OC(1) + t_res * (D_bio(1) * ( 2 * OC(2) - 2 * OC(1) +... %diffusion
+    %    2 * z_res(1) * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
+    %   -w(1) * -1 * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))... %advection
+    %   +TotR_OC(1)); %reaction
 
+    %implement nonzero sigma at the interface // OS
     OC_1 = OC(1) + t_res * (D_bio(1) * ( 2 * OC(2) - 2 * OC(1) +... %diffusion
-        2 * z_res(1) * (2*Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
-        -w(1) * -1 * (2*Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))... %advection
+        2 * z_res(1) * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ) / (z_res(1).^2) ...  %diffusion
+        + (delta_D_bio(1) + D_bio(1) / phiS(1) * - delta_phiS(1) - w(1)) * -1 * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))... %advection
         +TotR_OC(1)); %reaction
+    
+%     if i == 1
+%         disp(' ')
+%         disp('original irrigative O2 term at top:')
+%         disp(t_res*alpha(1) * ( O2w - O2(1) ))
+%         disp(' ')
+%     end % if
+%     if i == 1
+%         disp(' ')
+%         disp('original advective OC term at top:')
+%         disp(t_res*(-w(1) * -1 * (2*Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))))
+%         disp('corrected advective OC term at top:')
+%         disp(t_res*(-w(1) * -1 * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1))))
+%         disp(' ')
+%     end % if
+%     if i == 1
+%         disp(' ')
+%         disp('original diffusive OC term at top:')
+%         disp(t_res*(D_bio(1) * ( 2 * OC(2) - 2 * OC(1) +... %diffusion
+%             2 * z_res(1) * (2*Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ...
+%             ) / (z_res(1).^2)))
+%         disp('corrected diffusive OC term at top:')
+%         disp(t_res*(D_bio(1) * ( 2 * OC(2) - 2 * OC(1) +... %diffusion
+%             2 * z_res(1) * (Foc - phiS(1) * w(1) * OC(1)) / (D_bio(1) * phiS(1)) ...
+%             ) / (z_res(1).^2)))
+%         disp(' ')
+%     end % if
       
     %% bottom boundary condition: gradients disappear
     % Calculate here, but don't set in arrays yet, otherwise calculations
@@ -151,7 +212,7 @@ for i=i:t_length-1
 
     OC_z = OC(z_length) + t_res * (D_bio(z_length) * 2 * ( (OC(z_length-1) - OC(z_length)) / z_res(z_length).^2)... %diffusion
         - APPW(z_length) * (-sigma(z_length)*OC(z_length-1) + sigma(z_length)*OC(z_length))/z_res(z_length)... %advection
-        +TotR_OC(z_length)); 
+        +TotR_OC(z_length));
     
     %% all other depths
     % z_length=100 seems to be the sweet spot where loop and logical
@@ -191,15 +252,13 @@ for i=i:t_length-1
     O2(O2<0)=0;
     OC(OC<0)=0;
     
-    %% save data every year
-    if i == plot_number(idx)
-        disp(plot_number(idx)*t_res)
-        O2f(idx,:)=O2;
-        OCf(idx,:)=OC;
-        idx=idx+1;
-    end
+    %% save data every step
+    O2f(:, i+1) = O2;
+    OCf(:, i+1) = OC;
 
 end
 
 tEnd = toc(tStart);
 fprintf('%d minutes and %f seconds\n', floor(tEnd/60), rem(tEnd,60));
+
+RADIplot
