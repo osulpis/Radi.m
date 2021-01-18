@@ -1,6 +1,5 @@
 %% 1-D Reaction-Advection-Diffusion-Irrigation (RADI) Diagenetic Sediment Module
-%% Source code by O. Sulpis and M. Wilhelmus
-%% Optimised for MATLAB by M.P. Humphreys [v20, March 2020]
+%% Source code by O. Sulpis, M.P. Humphreys, M. Wilhelmus and D. Carroll
 %% Uses: CO2SYS and calc_pco2
 
 disp("RADIv20 is running the following experiment:")
@@ -26,66 +25,59 @@ tStart = tic;
 
 %% carbonate system initialization this is used only at the first time step to initialize the calc_pco2 program
 CO2SYS_data = CO2SYS(dtalkw*1e6/rho_sw,dtCO2w*1e6/rho_sw,1,2,S,T,T,P,P,dSiw*1e6/rho_sw,dtPO4w*1e6/rho_sw,1,10,1);
-k1(1,1:ndepths) = CO2SYS_data(1,67);           %carbonic acid first dissociation constant
-k2(1,1:ndepths) = CO2SYS_data(1,68);           %carbonic acid second dissociation constant
-k1p(1,1:ndepths) = CO2SYS_data(1,75);         %phosphate constant 1
-k2p(1,1:ndepths) = CO2SYS_data(1,76);         %phosphate constant 2
-k3p(1,1:ndepths) = CO2SYS_data(1,77);         %phosphate constant 3
-kb(1,1:ndepths) = CO2SYS_data(1,72);            %boron constant 
-kw(1,1:ndepths) = CO2SYS_data(1,71);           %water dissociation constants
-ksi(1,1:ndepths) = CO2SYS_data(1,78);           %silica constants
-bt(1,1:ndepths) = CO2SYS_data(1,79);             %[umol/kg] total boron 
-omegaC = CO2SYS_data(1,30);                         %calcite saturation state
-omegaA = CO2SYS_data(1,31);                          %aragonite saturation state
-co3 = CO2SYS_data(1,22) .* 10^-6;                   %[mol/kg] CO3 
-hco3 = CO2SYS_data(1,21) .* 10^-6;                 %[mol/kg] HCO3
-ph = CO2SYS_data(1,37) ;                                   %pH on the total scale
-Ca_ini = dCaw ./ rho_sw;                                 %[mol/kg] Ca concentration 
-fg(1,1:ndepths)=dtalkw./rho_sw-hco3-2*co3; %sum of all alkalinity species that are not carbon
-kspc = (co3 .* Ca_ini) ./ omegaC;                %[mol2/kg2] calcite in situ solubility
-kspa = (co3 .* Ca_ini) ./ omegaA;                %[mol2/kg2] aragonite in situ solubility
-ff(1,1:ndepths) = 1;                                        %random parameter needed for calc_pco2
-H(1,1:ndepths) = 10^-ph;                             %[mol/kg] H concentration first guess
+k1(1,1:ndepths) = CO2SYS_data(1,67);    %carbonic acid first dissociation constant
+k2(1,1:ndepths) = CO2SYS_data(1,68);     %carbonic acid second dissociation constant
+k1p(1,1:ndepths) = CO2SYS_data(1,75);     %phosphate constant 1
+k2p(1,1:ndepths) = CO2SYS_data(1,76);      %phosphate constant 2
+k3p(1,1:ndepths) = CO2SYS_data(1,77);     %phosphate constant 3
+kb(1,1:ndepths) = CO2SYS_data(1,72);      %boron constant 
+kw(1,1:ndepths) = CO2SYS_data(1,71);       %water dissociation constants
+ksi(1,1:ndepths) = CO2SYS_data(1,78);       %silica constants
+bt(1,1:ndepths) = CO2SYS_data(1,79);      %[umol/kg] total boron 
+omegaC = CO2SYS_data(1,30);          %calcite saturation state
+omegaA = CO2SYS_data(1,31);          %aragonite saturation state
+co3 = CO2SYS_data(1,22) .* 10^-6;          %[mol/kg] CO3 
+hco3 = CO2SYS_data(1,21) .* 10^-6;          %[mol/kg] HCO3
+ph = CO2SYS_data(1,37) ;         %pH on the total scale
+Ca_ini = dCaw ./ rho_sw;         %[mol/kg] Ca concentration 
+fg(1,1:ndepths)=dtalkw./rho_sw-hco3-2*co3;    %sum of all alkalinity species that are not carbon
+kspc = (co3 .* Ca_ini) ./ omegaC;        %[mol2/kg2] calcite in situ solubility
+kspa = (co3 .* Ca_ini) ./ omegaA;      %[mol2/kg2] aragonite in situ solubility
+ff(1,1:ndepths) = 1;      %random parameter needed for calc_pco2
+H(1,1:ndepths) = 10^-ph;       %[mol/kg] H concentration first guess
 clear co3 hco3 ph omegaC omegaA Ca_ini CO2SYS_data   
-sit = 120 * 10^-6;                                              %[mol/kg] convert silica concentration
-bt = bt .* 10^-6;                                                %[mol/kg] convert boron concentration
+sit = 120 * 10^-6;        %[mol/kg] convert silica concentration
+bt = bt .* 10^-6;        %[mol/kg] convert boron concentration
 
 %% temperature dependent "free solution" diffusion coefficients
-D_dO2=0.034862+0.001409*T; %[m2/a] oxygen diffusion coefficient from Li and Gregory
-D_dtalk=0.015169+0.000793*T;         %[m2/a] approximted to bicarbonate diffusion coefficient from Hulse et al (2018)
-D_dtCO2=0.015169+0.000793*T;         %[m2/a] approximted to bicarbonate diffusion coefficient from Hulse et al (2018)
-D_dtNO3=0.030842+0.001226*T;        %[m2/a] nitrate diffusion coefficient from Li and Gregory (1974)
-D_dtSO4=0.015768+0.000788*T;        %[m2/a] sulfate diffusion coefficient from Li and Gregory (1974)
-D_dtPO4=0.011291+0.000559*T;        %[m2/a] phosphate diffusion coefficient from Li and Gregory (1974)
-D_dtNH4=0.030905+0.001226*T;        %[m2/a] ammonium diffusion coefficient from Li and Gregory (1974)
-D_dtH2S=0.030748+0.000964*T;        %[m2/a] hydrogen sulfide diffusion coefficient from the UNISENSE table by Ramsing and Gundersen
-D_dMn=0.0086+0.001525*T;           %[m2/a] manganese diffusion coefficient from Li and Gregory (1974)
-D_dFe=0.0108+0.001478*T;           %[m2/a] iron diffusion coefficient from Li and Gregory (1974)
-D_dCa=0.0107+0.001677*T;         %[m2/a] calcium diffusion coefficient from Li and Gregory (1974)
+D_dO2=0.034862+0.001409*T;       %[m2/a] oxygen diffusion coefficient from Li and Gregory
+D_dtalk=0.015169+0.000793*T;       %[m2/a] approximted to bicarbonate diffusion coefficient from Hulse et al (2018)
+D_dtCO2=0.015169+0.000793*T;       %[m2/a] approximted to bicarbonate diffusion coefficient from Hulse et al (2018)
+D_dtNO3=0.030842+0.001226*T;      %[m2/a] nitrate diffusion coefficient from Li and Gregory (1974)
+D_dtSO4=0.015768+0.000788*T;      %[m2/a] sulfate diffusion coefficient from Li and Gregory (1974)
+D_dtPO4=0.011291+0.000559*T;      %[m2/a] phosphate diffusion coefficient from Li and Gregory (1974)
+D_dtNH4=0.030905+0.001226*T;     %[m2/a] ammonium diffusion coefficient from Li and Gregory (1974)
+D_dtH2S=0.030748+0.000964*T;    %[m2/a] hydrogen sulfide diffusion coefficient from the UNISENSE table by Ramsing and Gundersen
+D_dMn=0.0086+0.001525*T;    %[m2/a] manganese diffusion coefficient from Li and Gregory (1974)
+D_dFe=0.0108+0.001478*T;    %[m2/a] iron diffusion coefficient from Li and Gregory (1974)
+D_dCa=0.0107+0.001677*T;     %[m2/a] calcium diffusion coefficient from Li and Gregory (1974)
 
 %% bioturbation (for solids)
-D_bio_0=1e-4*0.0232*(Foc*1e2)^0.85; %[m2/a] surf bioturb coeff, Archer et al (2002)
-lambda_b = 0.08;
+D_bio_0=1e-6*2.32*(Foc*1e2)^0.85;      %[m2/a] surf bioturb coeff, Archer et al (2002)
+lambda_b = 0.08;      %[m] characteristic bioturbation depth
 D_bio=D_bio_0*exp(-(depths./lambda_b).^2).*((dO2w/1e-3)/((dO2w/1e-3)+20)); %[m2/a] bioturb coeff, Archer et al (2002)
 
 %% irrigation (for solutes)
-alpha_0=11*(atan((5*Foc*1e2-400)/400)/pi+0.5)-0.9...
+alpha_0=11*(atan((5*(Foc*1e2-400))/400)/pi+0.5)-0.9...
     +20*((dO2w/1e-3)/((dO2w/1e-3)+10))*exp(-(dO2w/1e-3)/10)*Foc*1e2/(Foc*1e2+30);    %[/a] from Archer et al (2002)
-lambda_i=0.05;
-alpha=alpha_0.*exp(-(depths/lambda_i).^2);                                                                                   %[/a] Archer et al (2002) the depth of 5 cm was changed
+lambda_i=0.05;    %[m] characteristic irrigation depth
+alpha=alpha_0.*exp(-(depths/lambda_i).^2);    %[/a] Archer et al (2002) the depth of 5 cm was changed
 
 %% depth-dependent porosity and diffusion coefficient loss
-% % Use differences - values should then be divided by z_res?
-% delta_phi = [0 diff(phi)]; % depth-dependent porosity loss
-% delta_phiS = [0 diff(phiS)]; % depth-dependent solid fraction gain
-% delta_tort2 = [0 diff(tort.^2)]; % depth-dependent tortuosity gain
-% delta_D_bio_i = [0 diff(D_bio)]; % [m/a]
-% Use derivative equations instead! all checked vs finite differences
-delta_phi = -phiBeta.*(phi0 - phiInf).*exp(-phiBeta*depths);
-% delta_phi(1) = 0; % don't do this
-delta_phiS = -delta_phi;
-delta_tort2 = -2*delta_phi./phi; % not used in Julia
-delta_D_bio = -2*depths.*D_bio/lambda_b^2; % not used in Julia
+delta_phi = -phiBeta.*(phi0 - phiInf).*exp(-phiBeta*depths); % depth-dependent porosity loss
+delta_phiS = -delta_phi;   % depth-dependent solid fraction gain
+delta_tort2 = -2*delta_phi./phi;   % depth-dependent tortuosity gain [not used in Julia]
+delta_D_bio = -2*depths.*D_bio/lambda_b^2; % [not used in Julia]
 
 % biodiffusion depth-attenuation: see Boudreau (1996); Fiadeiro and Veronis (1977)
 Peh=w.*z_res./(2*D_bio);      %one half the cell Peclet number (Eq. 97 in Boudreau 1996)
@@ -93,7 +85,6 @@ Peh=w.*z_res./(2*D_bio);      %one half the cell Peclet number (Eq. 97 in Boudre
 sigma=1./tanh(Peh)-1./(Peh);  %Eq. 96 in Boudreau 1996
 
 %% organic matter degradation parameters
-
  KdO2=0.003; %[mol/m3] Monod constant from Soetaert et al. 1996 (GCA)
  KindO2=0.01; %[mol/m3] Monod inhibition constant from Soetaert et al. 1996 (GCA)
  KdtNO3=0.03; %[mol/m3] Monod constant from Soetaert et al. 1996 (GCA)
@@ -105,11 +96,11 @@ sigma=1./tanh(Peh)-1./(Peh);  %Eq. 96 in Boudreau 1996
  KdtSO4=1.6; %[mol/m3] Monod constant from Van Cappellen and Wang 1996
  KindtSO4=KdtSO4; %[mol/m3] Monod inhibition constant from Van Cappellen and Wang 1996
 
-kslow_0=1e-4 * (Foc*1e2)^0.85;    %[/a] tuned parameter, function from Archer et al (2002)
+kslow_0=1.5e-4 * (Foc*1e2)^0.85;    %[/a] tuned parameter, function from Archer et al (2002)
 lambda_slow=1;     %[m] tuned parameter
 kslow=kslow_0*exp(-depths./lambda_slow);    %[/a] from Archer et al (2002)
 
-kfast_0=1e-2 * (Foc*1e2)^0.85;    %[/a] tuned parameter, function from Archer et al (2002)
+kfast_0=1.5e-2 * (Foc*1e2)^0.85;    %[/a] tuned parameter, function from Archer et al (2002)
 lambda_fast=0.03;     %[m] tuned parameter
 kfast=kfast_0*exp(-depths./lambda_fast);    %[/a] from Archer et al (2002)
 
@@ -147,7 +138,9 @@ if rerun == 0 %concentrations set to zero for solids, bottom water values for no
     % variable saving
     i=1;
     idx=1;
+    %1/40 for seasons % 1/32000 for tides
     plot_number=0:t_length/stoptime:t_length;  %we will only keep the variables every year
+%    plot_number=0:t_length/stoptime/32000:t_length;  %we will only keep the variables every year
     plot_number(1)=1;
     
 elseif rerun==1 %if it is a rerun, initial conditions are concentrations from last time step
@@ -252,8 +245,8 @@ psoc(:) = 3e3;
 pfoc(:) = 3e2;
 pFeOH3(:)= 0;
 pMnO2(:) = 0;
-pcalcite(:) = 1e3;
-paragonite(:) = 1e3;
+pcalcite(:) = 0;
+paragonite(:) = 0;
 pclay(:) = 0;
 
 % Preallocate saving arrays
@@ -300,6 +293,7 @@ for i=i:t_length-1
 
 %     disp(i)
     
+%compute solute diffusive fluxes through the sediment-water interface 
     %F_O2i=D_O2*phi(1)*(O2(:,1)-O2w)./5e-3;
     %F_DICi=D_DIC*phi(1)*(DIC(:,1)-DICw)./5e-3;
     %F_TAi=D_TA*phi(1)*(TA(:,1)-TAw)./5e-3;
@@ -407,9 +401,20 @@ for i=i:t_length-1
          end
     end
     
+        %% Variable solid fluxes or DBL
+ 
+%    Foc=0.10872097734916326+sin(2*pi*i*interval)*0.10872097734916326*0.5; %[mol/m2/a] flux of total organic carbon to the bottom 
+%    Froc=Foc*0.15; %[mol/m2/a] flux of total organic carbon to the bottom 
+%    Fsoc=Foc*0.15; %[mol/m2/a] flux of total organic carbon to the bottom 
+%    Ffoc=Foc*0.7; %[mol/m2/a] flux of total organic carbon to the bottom  
+%    Fcalcite=0.2+sin(2*pi*i*interval)*0.2*0.5;
+%    dbl=1e-3+0.5e-3*sin(2*pi*i*interval*365.25*24./6);
+    
+%    Foc_saved(1,idx)=Foc;
+%    dbl_saved(1,idx)=dbl; 
+%    TR=(2*z_res.* (tort.^2)./ dbl);
+
     %% Calculate all reactions (14 species, units: [mol/m3/a])
-    % This section ~2x faster by not putting all the reactions into a
-    % single matrix but keeping as separate vectors // MPH
     TotR_dO2 = - phiS./phi.*(Rs_o2 + Rf_o2) - 0.25.*RFeox - 0.5.*RMnox - 2.*RSox - 2.*RNHox;
     TotR_dtalk = + phiS./ phi.*(Rs_o2.*(RN./RC - RP./RC) + Rf_o2.*(RN./RC - RP./RC) + Rs_no3.*(0.8+RN./RC - RP./RC)...
         + Rf_no3.*(0.8+RN./RC - RP./RC) + Rs_mno2.*(4+RN./RC - RP./RC) + Rf_mno2.*(4+RN./RC - RP./RC)...
@@ -434,9 +439,6 @@ for i=i:t_length-1
     TotR_paragonite = -Rd_aragonite;
     
     %% top boundary condition: prescribed solid fluxes and diffusive boundary layer control on solutes
-    % Calculate here, but don't set in arrays yet, otherwise calculations
-    % at other depths use values from the wrong timestep // MPH [v20]
-    
     dO2_1 = dO2(1) + interval * ( D_dO2 / tort2(1) * (2*dO2(2) - 2*dO2(1) + TR(1) * (dO2w - dO2(1))) / (z_res(1)^2) ... %diffusion
         - (u(1) - D_dO2.*DFF(1)) * -1 * TR(1) * ( dO2w - dO2(1)) / (2*z_res(1)) ... %advection
         + alpha(1) * ( dO2w - dO2(1) ) ... %irrigation
@@ -539,8 +541,6 @@ for i=i:t_length-1
         (1 + sigma(1))*(pclay(2)+2*z_res(1)/D_bio(1)*(Fclay/phiS(1)-w(1)*pclay(1))))/(2*z_res(1))); %advection
     
     %% bottom boundary condition: gradients disappear
-    % Calculate here, but don't set in arrays yet, otherwise calculations
-    % at other depths use values from the wrong timestep // MPH [v20]
     dO2_z = dO2(ndepths) + interval * (D_dO2 / tort2(ndepths) * 2 * ((dO2(ndepths-1) - dO2(ndepths)) / z_res(ndepths).^2) ...  %diffusion
         + alpha(ndepths) * (dO2w - dO2(ndepths)) ... %irrigation
         +TotR_dO2(ndepths));
@@ -616,10 +616,6 @@ for i=i:t_length-1
         - APPW(ndepths) * (-sigma(ndepths)*pclay(ndepths-1) + sigma(ndepths)*pclay(ndepths))/z_res(ndepths)); %advection
     
     %% all other depths
-    % ndepths=100 seems to be the sweet spot where loop and logical
-    % approaches take about the same time as each other. For greater
-    % ndepths, logical is faster. Indices are defined once, before the
-    % loop begins. // MPH [v20]
     
     % Oxygen
     dO2_j = dO2(j);
@@ -809,8 +805,6 @@ for i=i:t_length-1
         pclay_jm1)./z_res2_j));    
     
     %% Set top and bottom conditions in arrays
-    % Doing this here means that the correct values are used in calculating
-    % diffusion and advection at all other depths // MPH [v20]
     dO2(1) = dO2_1;
     dtalk(1) = dtalk_1; 
     dtCO2(1) = dtCO2_1; 
