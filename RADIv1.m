@@ -140,7 +140,8 @@ if rerun == 0 %concentrations set to zero for solids, bottom water values for no
     idx=1;
     %1/40 for seasons % 1/32000 for tides
     plot_number=0:t_length/stoptime:t_length;  %we will only keep the variables every year
-%    plot_number=0:t_length/stoptime/32000:t_length;  %we will only keep the variables every year
+%    plot_number=0:t_length/stoptime/32000:t_length;  %we will keep the
+%    variables every (1/32000) year (~half an hour)
     plot_number(1)=1;
     
 elseif rerun==1 %if it is a rerun, initial conditions are concentrations from last time step
