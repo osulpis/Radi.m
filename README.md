@@ -11,7 +11,7 @@ Requirements for IC_W29: `gsw_rho` from the [Gibbs-SeaWater Oceanographic Toolbo
 ## Instructions
 
 ```matlab
-IC_W29 % set environmental conditions
+IC_W2 % set environmental conditions
 rerun = 0; % for a fresh start; 1 for a re-run
 RADI % run the model
 ```

@@ -1,0 +1,11 @@
+figure(1); clf
+subplot(3, 2, 1)
+plot(depths*1e2, dO2f*1e3)
+subplot(3, 2, 6)
+plot(depths*1e2, procf*1e-3)
+subplot(3, 2, 5)
+plot(depths*1e2, psocf*1e-3)
+subplot(3, 2, 4)
+plot(depths*1e2, pfocf*1e-3)
+subplot(3, 2, 2)
+plot(depths*1e2, dtCO2f.*1e3)
